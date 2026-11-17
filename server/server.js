@@ -37,7 +37,10 @@ loadEnvFile(path.resolve(__dirname, ".env"));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ATLAS_URI = "mongodb+srv://bbalesolomon011_db_user:123admin@cluster0.x8243mr.mongodb.net/luweero_agri_db?retryWrites=true&w=majority";
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || ATLAS_URI;
+let MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || ATLAS_URI;
+if (!MONGO_URI || MONGO_URI.includes("localhost") || MONGO_URI.includes("127.0.0.1")) {
+  MONGO_URI = ATLAS_URI;
+}
 const DB_NAME = process.env.DB_NAME || "luweero_agri_db";
 let mongoRetryAttempt = 0;
 const MAX_MONGO_RETRY_DELAY_MS = 60_000;
@@ -86,7 +89,7 @@ app.listen(PORT, () => {
 function connectMongoDB() {
   const maskedUri = MONGO_URI.replace(/:\/\/([^:]+):([^@]+)@/, "://$1:****@");
   console.log(`Attempting MongoDB connection to: ${maskedUri}`);
-  MongoClient.connect(MONGO_URI)
+  MongoClient.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 })
     .then(async (client) => {
       mongoRetryAttempt = 0;
       db = client.db(DB_NAME);
@@ -96,11 +99,9 @@ function connectMongoDB() {
     })
     .catch((err) => {
       console.warn("⚠️  MongoDB connection notice:", err.message);
-      const errorDetails = `${err.code || ""} ${err.cause && err.cause.code || ""} ${err.message || ""}`;
-      if (/\b(?:ENOTFOUND|EAI_AGAIN)\b/.test(errorDetails)) {
-        console.warn("MongoDB DNS lookup failed. Verify the Atlas hostname in MONGODB_URI and the runtime's DNS/network access.");
+      if (err.message && (err.message.includes("timed out") || err.message.includes("timeout"))) {
+        console.warn("🔒 Firewall Notice: MongoDB Atlas connection timed out. Please ensure IP 0.0.0.0/0 (Allow Access from Anywhere) is enabled under Network Access in your MongoDB Atlas dashboard.");
       }
-      console.warn("Hint: When hosting on Render, set MONGODB_URI in the Environment Variables tab with your MongoDB Atlas connection string.");
       const retryDelay = Math.min(5_000 * (2 ** mongoRetryAttempt), MAX_MONGO_RETRY_DELAY_MS);
       mongoRetryAttempt += 1;
       console.warn(`Retrying MongoDB connection in ${Math.ceil(retryDelay / 1_000)} seconds.`);
