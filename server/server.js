@@ -829,8 +829,9 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Any unmatched GET request (excluding /api routes) sends client/index.html
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next();
+// Uses app.use middleware to be fully compatible with Express 5 path-to-regexp
+app.use((req, res, next) => {
+  if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
   const clientIndexPath = path.join(CLIENT_DIR, "index.html");
   if (fs.existsSync(clientIndexPath)) {
     return res.sendFile(clientIndexPath);
