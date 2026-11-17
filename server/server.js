@@ -7,6 +7,12 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const dns = require("dns");
+
+// Optimize DNS for cloud MongoDB SRV lookups
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (_) {}
 
 // Environment configuration loader (native zero-dependency with dotenv fallback)
 try {

@@ -6,6 +6,11 @@ const { MongoClient, ObjectId } = require("mongodb");
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const dns = require("dns");
+
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (_) {}
 
 try {
   require("dotenv").config();
