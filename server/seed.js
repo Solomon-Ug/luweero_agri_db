@@ -37,8 +37,26 @@ function loadEnvFile(envPath) {
 loadEnvFile(path.resolve(__dirname, "../.env"));
 loadEnvFile(path.resolve(__dirname, ".env"));
 
-const NON_SRV_URI = "mongodb://bbalesolomon011_db_user:123admin@ac-ygvlfdx-shard-00-00.x8243mr.mongodb.net:27017,ac-ygvlfdx-shard-00-01.x8243mr.mongodb.net:27017,ac-ygvlfdx-shard-00-02.x8243mr.mongodb.net:27017/luweero_agri_db?ssl=true&replicaSet=atlas-mmrhzf-shard-0&authSource=admin&retryWrites=true&w=majority";
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || NON_SRV_URI;
+const ATLAS_SHARDS = [
+  "ac-ygvlfdx-shard-00-00.x8243mr.mongodb.net:27017",
+  "ac-ygvlfdx-shard-00-01.x8243mr.mongodb.net:27017",
+  "ac-ygvlfdx-shard-00-02.x8243mr.mongodb.net:27017"
+].join(",");
+
+function normalizeMongoUri(rawUri) {
+  if (!rawUri || rawUri.includes("localhost") || rawUri.includes("127.0.0.1")) {
+    return `mongodb://bbalesolomon011_db_user:123admin@${ATLAS_SHARDS}/luweero_agri_db?ssl=true&replicaSet=atlas-mmrhzf-shard-0&authSource=admin&retryWrites=true&w=majority`;
+  }
+  if (rawUri.includes("cluster0.x8243mr.mongodb.net")) {
+    const match = rawUri.match(/:\/\/(?:([^:]+):([^@]+)@)?/);
+    const user = match && match[1] ? match[1] : "bbalesolomon011_db_user";
+    const pass = match && match[2] ? match[2] : "123admin";
+    return `mongodb://${user}:${pass}@${ATLAS_SHARDS}/luweero_agri_db?ssl=true&replicaSet=atlas-mmrhzf-shard-0&authSource=admin&retryWrites=true&w=majority`;
+  }
+  return rawUri;
+}
+
+const MONGO_URI = normalizeMongoUri(process.env.MONGODB_URI || process.env.MONGO_URI);
 const DB_NAME = process.env.DB_NAME || "luweero_agri_db";
 
 async function runSeed() {
