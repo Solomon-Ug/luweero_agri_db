@@ -37,8 +37,8 @@ function loadEnvFile(envPath) {
 loadEnvFile(path.resolve(__dirname, "../.env"));
 loadEnvFile(path.resolve(__dirname, ".env"));
 
-const ATLAS_URI = "mongodb+srv://bbalesolomon011_db_user:123admin@cluster0.x8243mr.mongodb.net/luweero_agri_db?retryWrites=true&w=majority";
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || ATLAS_URI;
+const NON_SRV_URI = "mongodb://bbalesolomon011_db_user:123admin@ac-ygvlfdx-shard-00-00.x8243mr.mongodb.net:27017,ac-ygvlfdx-shard-00-01.x8243mr.mongodb.net:27017,ac-ygvlfdx-shard-00-02.x8243mr.mongodb.net:27017/luweero_agri_db?ssl=true&replicaSet=atlas-mmrhzf-shard-0&authSource=admin&retryWrites=true&w=majority";
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || NON_SRV_URI;
 const DB_NAME = process.env.DB_NAME || "luweero_agri_db";
 
 async function runSeed() {
