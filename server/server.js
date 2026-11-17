@@ -65,30 +65,33 @@ function verifyPassword(password, hash) {
 
 let db;
 
-// ── Connect once, reuse client ────────────────────────────────
-MongoClient.connect(MONGO_URI)
-  .then((client) => {
-    db = client.db(DB_NAME);
-    console.log(` Connected to MongoDB → ${DB_NAME}`);
-    
-    // Initialize default admin user if not exists
-    initializeDefaultAdmin();
-    
-    app.listen(PORT, () => {
-      console.log(`=======================================================`);
-      console.log(` Luweero District Agricultural Management System`);
-      console.log(` Listening on port: ${PORT}`);
-      console.log(` Dashboard URL: http://localhost:${PORT}`);
-      console.log(` Serving client from: ${CLIENT_DIR}`);
-      console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`=======================================================`);
+// ── Start HTTP server immediately (ensures Render health checks pass) ──
+app.listen(PORT, () => {
+  console.log(`=======================================================`);
+  console.log(` Luweero District Agricultural Management System`);
+  console.log(` Listening on port: ${PORT}`);
+  console.log(` Dashboard URL: http://localhost:${PORT}`);
+  console.log(` Serving client from: ${CLIENT_DIR}`);
+  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`=======================================================`);
+});
+
+// ── Connect to MongoDB ─────────────────────────────────────────
+function connectMongoDB() {
+  const maskedUri = MONGO_URI.replace(/:\/\/([^:]+):([^@]+)@/, "://$1:****@");
+  console.log(`Attempting MongoDB connection to: ${maskedUri}`);
+  MongoClient.connect(MONGO_URI)
+    .then((client) => {
+      db = client.db(DB_NAME);
+      console.log(` Connected to MongoDB → ${DB_NAME}`);
+      initializeDefaultAdmin();
+    })
+    .catch((err) => {
+      console.warn("⚠️  MongoDB connection notice:", err.message);
+      console.warn("Hint: When hosting on Render, set MONGODB_URI in the Environment Variables tab with your MongoDB Atlas connection string.");
     });
-  })
-  .catch((err) => {
-    console.error("❌  MongoDB connection failed:", err.message);
-    console.error("Hint: Set MONGODB_URI or MONGO_URI environment variable for remote MongoDB Atlas instances.");
-    process.exit(1);
-  });
+}
+connectMongoDB();
 
 // Initialize default admin user
 async function initializeDefaultAdmin() {
@@ -111,7 +114,12 @@ async function initializeDefaultAdmin() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-const col = (name) => db.collection(name);
+const col = (name) => {
+  if (!db) {
+    throw new Error("MongoDB database is not connected. Please set the MONGODB_URI environment variable in your Render settings.");
+  }
+  return db.collection(name);
+};
 
 const toOid = (id) => {
   try { return new ObjectId(id); } catch { return null; }
