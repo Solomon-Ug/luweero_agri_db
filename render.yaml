@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: luweero-agri-db
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_NAME
+        value: luweero_agri_db
+      - key: MONGODB_URI
+        sync: false
+

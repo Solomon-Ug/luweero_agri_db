@@ -1,0 +1,3981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luweero Agri DB – District Agricultural Management System</title>
+  <meta name="description" content="Luweero District Agricultural Management System – MongoDB NoSQL Dashboard with PDF & CSV Reporting" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Bootstrap Icons (Official) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- html2pdf.js for client-side direct PDF generation (with graceful print fallback) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* ── RESET & TOKENS ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0a0f1e;
+      --surface: #111827;
+      --card:    #1a2235;
+      --border:  rgba(255,255,255,.07);
+      --accent:  #16c784;
+      --blue:    #3b82f6;
+      --amber:   #f59e0b;
+      --pink:    #ec4899;
+      --teal:    #06b6d4;
+      --purple:  #a855f7;
+      --danger:  #ef4444;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --radius:  14px;
+      --shadow:  0 8px 32px rgba(0,0,0,.45);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Standard Icon Alignment */
+    i.bi {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: -0.125em;
+    }
+
+    .text-accent { color: var(--accent) !important; }
+    .text-blue   { color: var(--blue) !important; }
+    .text-teal   { color: var(--teal) !important; }
+    .text-amber  { color: var(--amber) !important; }
+    .text-pink   { color: var(--pink) !important; }
+    .text-purple { color: var(--purple) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-muted  { color: var(--muted) !important; }
+
+    /* ── LOGIN PAGE ──────────────────────────────────────────── */
+    .login-container {
+      display: none;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0f1e 0%, #1a2235 50%, #0f172a 100%);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-container.active { display: flex; }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      animation: fadeInUp .4s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 32px 24px;
+        border-radius: 16px;
+      }
+      .login-logo {
+        width: 60px; height: 60px;
+        font-size: 28px;
+      }
+      .login-title {
+        font-size: 20px;
+      }
+      .login-subtitle {
+        font-size: 12px;
+      }
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #16c784, #3b82f6);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px; margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(22,199,132,.3);
+      color: #ffffff;
+    }
+    .login-title {
+      font-size: 24px; font-weight: 700; color: #fff;
+      margin-bottom: 8px;
+    }
+    .login-subtitle {
+      font-size: 13px; color: var(--muted);
+    }
+
+    .login-form { display: flex; flex-direction: column; gap: 20px; }
+    .login-group {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .login-group label {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .login-input {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-family: inherit;
+      font-size: 14px; padding: 14px 16px; outline: none;
+      transition: all .2s;
+    }
+    .login-input:focus {
+      border-color: var(--accent);
+      background: rgba(22,199,132,.07);
+      box-shadow: 0 0 0 3px rgba(22,199,132,.15);
+    }
+    .login-input::placeholder { color: var(--muted); }
+
+    .login-btn {
+      background: linear-gradient(135deg, #16c784, #059669);
+      border: none; color: #fff; border-radius: 12px;
+      padding: 16px; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      box-shadow: 0 4px 16px rgba(22,199,132,.3);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(22,199,132,.45);
+    }
+    .login-btn:disabled {
+      opacity: .5; cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── DASHBOARD (hidden when logged out) ───────────────────── */
+    .dashboard-container {
+      display: none;
+    }
+    .dashboard-container.active { display: block; }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 240px; height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 24px 0; z-index: 100;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+    .sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+
+    .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #16c784, #3b82f6);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 10px;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(22,199,132,.3);
+    }
+    .logo h1 { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .logo p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; font-size: 13px; font-weight: 500;
+      color: var(--muted); transition: all .2s; margin-bottom: 2px;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover  { background: rgba(255,255,255,.05); color: var(--text); }
+    .nav-item.active { background: rgba(22,199,132,.12); color: var(--accent); }
+    .nav-icon {
+      font-size: 16px; width: 20px; text-align: center;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    .nav-divider {
+      height: 1px; background: var(--border); margin: 12px 6px;
+    }
+    .nav-heading {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .8px;
+      color: var(--muted); padding: 6px 12px; font-weight: 700;
+    }
+
+    .db-badge {
+      margin: 16px 12px 0;
+      background: rgba(22,199,132,.1);
+      border: 1px solid rgba(22,199,132,.25);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .db-badge p      { font-size: 11px; color: var(--muted); }
+    .db-badge strong { font-size: 12px; color: var(--accent); display: block; margin-bottom: 2px; }
+    .dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); margin-right: 5px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── MAIN ────────────────────────────────────────────────── */
+    .main { margin-left: 240px; min-height: 100vh; }
+
+    /* ── TOPBAR ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(10,15,30,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .topbar-title { font-size: 16px; font-weight: 600; }
+    .topbar-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .refresh-btn {
+      background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3);
+      color: var(--blue); border-radius: 8px; padding: 8px 16px;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .refresh-btn:hover { background: rgba(59,130,246,.28); color: #fff; }
+
+    .top-reports-btn {
+      background: linear-gradient(135deg, rgba(168,85,247,.2), rgba(59,130,246,.2));
+      border: 1px solid rgba(168,85,247,.4);
+      color: #c084fc; border-radius: 8px; padding: 8px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .top-reports-btn:hover {
+      background: linear-gradient(135deg, rgba(168,85,247,.35), rgba(59,130,246,.35));
+      color: #fff; transform: translateY(-1px);
+    }
+
+    /* ── CONTENT ─────────────────────────────────────────────── */
+    .content { padding: 28px; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── STATS GRID ──────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .stat-card.green::before  { background: var(--accent); }
+    .stat-card.blue::before   { background: var(--blue); }
+    .stat-card.amber::before  { background: var(--amber); }
+    .stat-card.pink::before   { background: var(--pink); }
+    .stat-card.teal::before   { background: var(--teal); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-icon  { font-size: 24px; margin-bottom: 10px; display: inline-flex; align-items: center; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-value { font-size: 28px; font-weight: 800; margin: 4px 0; }
+    .stat-sub   { font-size: 11px; color: var(--muted); }
+    .stat-card.green  .stat-value, .stat-card.green  .stat-icon { color: var(--accent); }
+    .stat-card.blue   .stat-value, .stat-card.blue   .stat-icon { color: var(--blue); }
+    .stat-card.amber  .stat-value, .stat-card.amber  .stat-icon { color: var(--amber); }
+    .stat-card.pink   .stat-value, .stat-card.pink   .stat-icon { color: var(--pink); }
+    .stat-card.teal   .stat-value, .stat-card.teal   .stat-icon { color: var(--teal); }
+    .stat-card.purple .stat-value, .stat-card.purple .stat-icon { color: var(--purple); }
+
+    /* ── CHARTS ──────────────────────────────────────────────── */
+    .chart-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px; margin-bottom: 28px;
+    }
+    .chart-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .chart-card h3 {
+      font-size: 13px; font-weight: 600; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .chart-card canvas { max-height: 200px; }
+
+    /* ── OVERVIEW ACTION BAR ─────────────────────────────────── */
+    .overview-actions-card {
+      background: linear-gradient(135deg, rgba(26,34,53,.8), rgba(17,24,39,.95));
+      border: 1px solid rgba(22,199,132,.25);
+      border-radius: var(--radius); padding: 20px 24px;
+      margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .overview-actions-info h3 {
+      font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .overview-actions-info p  { font-size: 13px; color: var(--muted); }
+    .overview-btns { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    /* ── SECTION TOOLBAR ─────────────────────────────────────── */
+    .section-toolbar {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+    }
+    .section-info .section-heading {
+      font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    }
+    .section-info .section-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .toolbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn-export-csv {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(22,199,132,.12); border: 1px solid rgba(22,199,132,.3);
+      color: #16c784; border-radius: 9px; padding: 9px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn-export-csv:hover { background: rgba(22,199,132,.25); color: #fff; transform: translateY(-1px); }
+
+    .btn-print-registry {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+      color: #60a5fa; border-radius: 9px; padding: 9px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn-print-registry:hover { background: rgba(59,130,246,.25); color: #fff; transform: translateY(-1px); }
+
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #16c784, #059669);
+      border: none; color: #fff; border-radius: 9px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+      box-shadow: 0 4px 15px rgba(22,199,132,.3);
+    }
+    .add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(22,199,132,.45); }
+
+    /* ── TABLES ──────────────────────────────────────────────── */
+    .table-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
+    }
+    .table-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-header h3 { font-size: 14px; font-weight: 600; }
+    .table-count {
+      background: rgba(255,255,255,.07); border-radius: 20px;
+      padding: 2px 10px; font-size: 11px; color: var(--muted);
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: rgba(255,255,255,.03); }
+    th {
+      text-align: left; padding: 10px 16px;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px; white-space: nowrap;
+    }
+    td { padding: 10px 16px; font-size: 13px; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,.025); }
+
+    /* ── ACTION BUTTONS ──────────────────────────────────────── */
+    .action-cell { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .btn-view, .btn-edit, .btn-del, .btn-row-print, .btn-receipt-row {
+      border: none; border-radius: 6px; cursor: pointer;
+      font-size: 11px; font-weight: 600; padding: 5px 10px;
+      transition: all .2s; white-space: nowrap; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-view { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.3); }
+    .btn-view:hover { background: rgba(59,130,246,.3); color: #fff; }
+    .btn-edit { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); }
+    .btn-edit:hover { background: rgba(245,158,11,.3); color: #fff; }
+    .btn-del  { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+    .btn-del:hover  { background: rgba(239,68,68,.25); color: #fff; }
+
+    .btn-row-print { background: rgba(6,182,212,.15); color: #22d3ee; border: 1px solid rgba(6,182,212,.3); }
+    .btn-row-print:hover { background: rgba(6,182,212,.3); color: #fff; }
+
+    .btn-receipt-row { background: rgba(22,199,132,.18); color: #16c784; border: 1px solid rgba(22,199,132,.35); font-weight: 700; }
+    .btn-receipt-row:hover { background: rgba(22,199,132,.35); color: #fff; }
+
+    /* ── BADGES ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block; border-radius: 20px;
+      padding: 2px 9px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: rgba(22,199,132,.15);  color: #16c784; }
+    .badge-blue   { background: rgba(59,130,246,.15);  color: #60a5fa; }
+    .badge-amber  { background: rgba(245,158,11,.15);  color: #fbbf24; }
+    .badge-red    { background: rgba(239,68,68,.15);   color: #f87171; }
+    .badge-purple { background: rgba(168,85,247,.15);  color: #c084fc; }
+    .badge-gray   { background: rgba(100,116,139,.15); color: #94a3b8; }
+    .badge-teal   { background: rgba(6,182,212,.15);   color: #22d3ee; }
+    .badge-pink   { background: rgba(236,72,153,.15);  color: #f472b6; }
+
+    .pill {
+      display: inline-block; background: rgba(255,255,255,.07);
+      border-radius: 4px; padding: 1px 7px; font-size: 11px;
+      margin: 1px; color: var(--muted);
+    }
+
+    /* ── LOADING / ERROR ─────────────────────────────────────── */
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px; color: var(--muted); font-size: 14px; gap: 10px;
+    }
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tbl-error {
+      text-align: center; padding: 40px; color: #f87171; font-size: 13px;
+    }
+    .tbl-error i { margin-right: 6px; }
+
+    /* ── MODAL ───────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75);
+      backdrop-filter: blur(6px); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; width: 560px; max-height: 90vh;
+      overflow-y: auto; padding: 28px; position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,.6);
+      animation: slideUp .25s ease;
+    }
+    .modal.wide { width: 720px; }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,.07); border: none; color: var(--muted);
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      transition: all .2s; font-family: inherit;
+    }
+    .modal-close:hover { background: rgba(255,255,255,.14); color: var(--text); }
+    .modal h2 {
+      font-size: 18px; font-weight: 700; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* detail view */
+    .detail-row   { display: flex; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+    .detail-label { color: var(--muted); min-width: 140px; flex-shrink: 0; }
+    .detail-value { color: var(--text); font-weight: 500; }
+    .nested-title {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px; margin: 16px 0 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .harvest-item {
+      background: rgba(255,255,255,.04); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 6px; font-size: 12px;
+    }
+    .harvest-item strong { color: var(--accent); }
+
+    /* ── FORM & DIALOGUE ACTIONS ─────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: 13px; padding: 9px 12px; outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--blue); background: rgba(59,130,246,.07);
+    }
+    .form-group select option { background: #1a2235; }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group small { font-size: 10px; color: var(--muted); }
+    .form-section-title {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .6px;
+      margin: 4px 0 -2px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* DIALOGUE ACTIONS with PRINT BUTTON */
+    .form-actions {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .btn-dialog-print {
+      margin-right: auto;
+      background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.4);
+      color: #60a5fa; border-radius: 8px; padding: 9px 18px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-dialog-print:hover {
+      background: rgba(59,130,246,.3); color: #fff; border-color: #3b82f6;
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: rgba(255,255,255,.07); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px; padding: 9px 20px;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-cancel:hover { background: rgba(255,255,255,.12); color: var(--text); }
+    .btn-save {
+      background: linear-gradient(135deg, #16c784, #059669);
+      border: none; color: #fff; border-radius: 8px;
+      padding: 9px 24px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .2s; font-family: inherit;
+      box-shadow: 0 4px 14px rgba(22,199,132,.3);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-save:hover  { box-shadow: 0 4px 20px rgba(22,199,132,.5); }
+    .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── CONFIRM ─────────────────────────────────────────────── */
+    .confirm-box { text-align: center; padding: 10px 0; }
+    .confirm-box p { font-size: 14px; color: var(--text); margin-bottom: 20px; line-height: 1.6; }
+    .confirm-box strong { color: var(--pink); }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-confirm-del {
+      background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4);
+      color: #f87171; border-radius: 8px; padding: 9px 24px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-confirm-del:hover    { background: rgba(239,68,68,.35); color: #fff; }
+    .btn-confirm-del:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── TOAST ───────────────────────────────────────────────── */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px; font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      animation: slideLeft .3s ease;
+      display: flex; align-items: center; gap: 10px;
+      transition: opacity .3s, transform .3s;
+    }
+    .toast.success { border-left: 3px solid var(--accent); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    @keyframes slideLeft { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* ── CONNECTION BANNER ───────────────────────────────────── */
+    .conn-banner {
+      display: none; background: rgba(239,68,68,.12);
+      border-bottom: 1px solid rgba(239,68,68,.3);
+      padding: 10px 28px; font-size: 13px; color: #f87171;
+      align-items: center; gap: 10px;
+    }
+    .conn-banner.visible { display: flex; }
+    .conn-banner button {
+      background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4);
+      color: #f87171; border-radius: 6px; padding: 4px 12px;
+      font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: background .2s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .conn-banner button:hover { background: rgba(239,68,68,.35); color: #fff; }
+
+    /* ═══════════════════════════════════════════════════════════
+       PRINT & DOCUMENT PREVIEW MODAL (ON-SCREEN VIEW)
+       ═══════════════════════════════════════════════════════════ */
+    .preview-overlay {
+      position: fixed; inset: 0; background: rgba(5,8,16,.88);
+      backdrop-filter: blur(8px); z-index: 300;
+      display: none; flex-direction: column; align-items: center; justify-content: flex-start;
+      overflow-y: auto; padding: 24px 16px;
+    }
+    .preview-overlay.open { display: flex; }
+
+    .preview-bar {
+      position: sticky; top: 0; z-index: 20;
+      background: #111827; border: 1px solid rgba(255,255,255,.15);
+      border-radius: 14px; padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; width: 100%; max-width: 860px; margin-bottom: 20px;
+      box-shadow: 0 12px 36px rgba(0,0,0,.6);
+    }
+    .preview-bar-title {
+      font-size: 14px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .preview-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .btn-preview-print {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border: none; color: #fff; border-radius: 8px; padding: 8px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(59,130,246,.35);
+    }
+    .btn-preview-print:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,130,246,.5); }
+
+    .btn-preview-pdf {
+      background: linear-gradient(135deg, #ec4899, #be185d);
+      border: none; color: #fff; border-radius: 8px; padding: 8px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(236,72,153,.35);
+    }
+    .btn-preview-pdf:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(236,72,153,.5); }
+
+    .btn-preview-csv {
+      background: linear-gradient(135deg, #16c784, #059669);
+      border: none; color: #fff; border-radius: 8px; padding: 8px 16px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(22,199,132,.35);
+    }
+    .btn-preview-csv:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,199,132,.5); }
+
+    .btn-preview-close {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: #e2e8f0; border-radius: 8px; padding: 8px 14px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-preview-close:hover { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* ── LOGO DRAG-DROP ZONE ──────────────────────────────────── */
+    .logo-drop-zone {
+      transition: all .2s ease;
+    }
+    .logo-drop-zone.drag-over {
+      border-color: var(--accent) !important;
+      background: rgba(22,199,132,.08) !important;
+    }
+    .logo-drop-zone.drag-over div {
+      color: var(--accent) !important;
+    }
+
+    /* The white A4 paper sheet on screen */
+    .print-paper {
+      background: #ffffff; color: #1e293b;
+      width: 100%; max-width: 210mm; min-height: 297mm;
+      padding: 15mm 20mm; border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.65);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin-bottom: 40px; position: relative;
+      box-sizing: border-box;
+    }
+
+    /* ── PAPER TYPOGRAPHY & LETTERHEAD ──────────────────────── */
+    .paper-header {
+      display: flex; align-items: center; gap: 20px;
+      padding-bottom: 16px; border-bottom: 3px double #0f172a;
+      margin-bottom: 24px;
+    }
+    .paper-crest { width: 70px; height: 70px; flex-shrink: 0; }
+    .paper-header-text { flex: 1; text-align: center; }
+    .paper-gov  { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 900; letter-spacing: 2px; color: #0f172a; }
+    .paper-dist { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 900; letter-spacing: 1.5px; color: #047857; margin: 2px 0; }
+    .paper-dept { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #1e293b; }
+    .paper-sub  { font-size: 10px; color: #64748b; margin-top: 4px; }
+
+    .paper-title-box {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-left: 5px solid #059669;
+      border-radius: 6px; padding: 12px 18px; margin-bottom: 22px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    .paper-title { font-size: 16px; font-weight: 800; color: #0f172a; letter-spacing: .4px; text-transform: uppercase; }
+    .paper-meta  { font-size: 11px; color: #475569; display: flex; gap: 16px; flex-wrap: wrap; }
+    .paper-meta strong { color: #0f172a; }
+
+    .doc-section-heading {
+      font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase;
+      letter-spacing: .8px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0;
+      margin: 22px 0 12px; display: flex; align-items: center; gap: 6px;
+    }
+
+    .doc-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .doc-card {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .doc-card h4 {
+      font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;
+      letter-spacing: .5px; margin-bottom: 10px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .doc-card-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; line-height: 1.4; }
+    .doc-card-label { color: #64748b; }
+    .doc-card-val   { font-weight: 600; color: #0f172a; text-align: right; }
+
+    /* Printable Data Tables */
+    .doc-table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 11.5px;
+    }
+    .doc-table th {
+      background: #f1f5f9; color: #0f172a; font-weight: 700;
+      text-transform: uppercase; font-size: 10px; letter-spacing: .5px;
+      padding: 8px 12px; border: 1px solid #cbd5e1; text-align: left;
+    }
+    .doc-table td {
+      padding: 8px 12px; border: 1px solid #e2e8f0; color: #1e293b;
+    }
+    .doc-table tr:nth-child(even) td { background: #fbfcfe; }
+    .doc-table tfoot td {
+      background: #f8fafc; font-weight: 700; border-top: 2px solid #94a3b8;
+    }
+
+    /* Financial Summary Highlight */
+    .financial-banner {
+      background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px;
+      padding: 16px 20px; margin: 20px 0;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .fin-item { text-align: left; }
+    .fin-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .5px; }
+    .fin-val { font-size: 18px; font-weight: 800; color: #14532d; font-family: 'Courier Prime', monospace; }
+    .fin-net .fin-val { font-size: 22px; color: #047857; }
+
+    /* Official Stamp Box */
+    .stamp-container {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-top: 36px; padding-top: 20px; border-top: 1px solid #e2e8f0;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .stamp-sig-box { text-align: center; width: 220px; }
+    .sig-line { border-bottom: 1px solid #0f172a; height: 40px; margin-bottom: 6px; }
+    .sig-title { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .sig-sub   { font-size: 9px; color: #94a3b8; }
+
+    .official-badge-stamp {
+      border: 3px double #047857; color: #047857;
+      padding: 8px 18px; border-radius: 6px; text-align: center;
+      font-family: 'Cinzel', serif; font-weight: 900; font-size: 11px;
+      letter-spacing: 1px; transform: rotate(-3deg);
+      background: rgba(4,120,87,.04);
+    }
+    .official-badge-stamp.paid   { border-color: #059669; color: #059669; }
+    .official-badge-stamp.unpaid { border-color: #dc2626; color: #dc2626; }
+    .official-badge-stamp.partial{ border-color: #d97706; color: #d97706; }
+
+    .paper-footer {
+      margin-top: 30px; padding-top: 12px; border-top: 1px dashed #cbd5e1;
+      font-size: 9.5px; color: #94a3b8; text-align: center;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PRINT STYLES (@media print) – 100% CLEAN INK-SAVING A4
+       ═══════════════════════════════════════════════════════════ */
+    #printable-area { display: none; }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 11pt !important;
+      }
+      .sidebar, .topbar, .content, .modal-overlay, .toast-container, .conn-banner, .preview-bar, button, .action-cell, .no-print, .mobile-menu-btn {
+        display: none !important;
+      }
+      #printable-area {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .print-paper {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        padding: 15mm 20mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        box-sizing: border-box !important;
+      }
+      .paper-header {
+        margin-bottom: 20px !important;
+        padding-bottom: 12px !important;
+      }
+      .paper-title-box {
+        margin-bottom: 20px !important;
+        padding: 12px 16px !important;
+      }
+      .doc-section-heading {
+        margin-top: 18px !important;
+        margin-bottom: 10px !important;
+      }
+      .doc-table {
+        margin: 10px 0 16px !important;
+      }
+      .financial-banner {
+        margin: 16px 0 !important;
+        padding: 14px 18px !important;
+      }
+      .stamp-container {
+        margin-top: 30px !important;
+        padding-top: 16px !important;
+      }
+      .doc-table th {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .financial-banner {
+        background: #f0fdf4 !important;
+        border: 1px solid #86efac !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .paper-title-box {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .official-badge-stamp {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 10mm 15mm;
+      }
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 1100px) { .chart-row { grid-template-columns: 1fr 1fr; } }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main {
+        margin-left: 0;
+        padding: 16px;
+      }
+      .topbar {
+        padding: 16px 20px;
+      }
+      .topbar h2 {
+        font-size: 18px;
+      }
+      .topbar-sub {
+        font-size: 11px;
+      }
+      .chart-row { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .doc-grid-2 { grid-template-columns: 1fr; }
+      .modal {
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .print-paper { padding: 24px 18px; }
+      
+      .mobile-menu-btn {
+        display: flex !important;
+      }
+    }
+    
+    @media (min-width: 769px) {
+      .mobile-menu-btn {
+        display: none !important;
+      }
+    }
+    
+    /* Mobile menu button */
+    .mobile-menu-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mobile-menu-btn:hover {
+      background: var(--card);
+    }
+    
+    /* Overlay when sidebar is open on mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,.5);
+      z-index: 99;
+    }
+    .sidebar-overlay.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN PAGE ─────────────────────────────────────────────── -->
+<div class="login-container active" id="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo"><i class="bi bi-sprout"></i></div>
+      <h1 class="login-title">Luweero Agri DB</h1>
+      <p class="login-subtitle">District Agricultural Management System</p>
+    </div>
+    <form class="login-form" onsubmit="handleLogin(event)">
+      <div class="login-group">
+        <label for="login-username"><i class="bi bi-person"></i> Username</label>
+        <input 
+          type="text" 
+          id="login-username" 
+          class="login-input" 
+          placeholder="Enter your username"
+          required
+          autocomplete="username"
+        />
+      </div>
+      <div class="login-group">
+        <label for="login-password"><i class="bi bi-lock"></i> Password</label>
+        <input 
+          type="password" 
+          id="login-password" 
+          class="login-input" 
+          placeholder="Enter your password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+      <button type="submit" class="login-btn" id="login-btn">
+        <i class="bi bi-box-arrow-in-right"></i> Sign In
+      </button>
+    </form>
+    <div class="login-footer">
+      <p>Luweero District Local Government<br>Directorate of Production and Marketing</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD CONTAINER ────────────────────────────────────── -->
+<div class="dashboard-container" id="dashboard-container">
+
+<!-- ── MOBILE MENU BUTTON ─────────────────────────────────────── -->
+<button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+  <i class="bi bi-list"></i>
+</button>
+
+<!-- ── SIDEBAR OVERLAY ────────────────────────────────────────── -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- ── SIDEBAR ───────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><i class="bi bi-sprout"></i></div>
+    <h1>Luweero Agri DB</h1>
+    <p>Uganda District Agriculture</p>
+  </div>
+  <nav>
+    <div class="nav-heading">DATABASE MODULES</div>
+    <button class="nav-item active" data-section="overview"     id="nav-overview"><i class="bi bi-speedometer2 nav-icon"></i> Overview &amp; Reports</button>
+    <button class="nav-item"        data-section="farmers"      id="nav-farmers"><i class="bi bi-people nav-icon"></i> Farmers Registry</button>
+    <button class="nav-item"        data-section="farms"        id="nav-farms"><i class="bi bi-map nav-icon"></i> Farms &amp; Plots</button>
+    <button class="nav-item"        data-section="crops"        id="nav-crops"><i class="bi bi-flower2 nav-icon"></i> Crops &amp; Livestock</button>
+    <button class="nav-item"        data-section="transactions" id="nav-transactions"><i class="bi bi-cash-coin nav-icon"></i> Market Sales</button>
+    <button class="nav-item"        data-section="visits"       id="nav-visits"><i class="bi bi-clipboard2-check nav-icon"></i> Extension Visits</button>
+    
+    <div class="nav-divider"></div>
+    <div class="nav-heading">PRINT &amp; EXPORT CENTER</div>
+    <button class="nav-item" onclick="openReportsModal()"><i class="bi bi-file-earmark-bar-graph nav-icon"></i> Official Reports</button>
+    <button class="nav-item" onclick="printExecutiveReport()"><i class="bi bi-printer nav-icon"></i> Print Executive PDF</button>
+    
+    <div class="nav-divider"></div>
+    <div class="nav-heading">SYSTEM SETTINGS</div>
+    <button class="nav-item" onclick="openSettingsModal()"><i class="bi bi-gear nav-icon"></i> Receipt Settings</button>
+    <button class="nav-item" onclick="openUserManagementModal()"><i class="bi bi-person-gear nav-icon"></i> User Management</button>
+    <button class="nav-item" onclick="handleLogout()" style="color:var(--danger)"><i class="bi bi-box-arrow-right nav-icon"></i> Logout</button>
+  </nav>
+  <div class="db-badge">
+    <strong><span class="dot"></span>luweero_agri_db</strong>
+    <p>MongoDB · localhost:27017</p>
+  </div>
+</aside>
+
+<!-- ── MAIN ──────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- connection error banner -->
+  <div class="conn-banner" id="conn-banner">
+    <i class="bi bi-exclamation-triangle-fill"></i> Cannot reach the server.
+    <button onclick="retryAll()"><i class="bi bi-arrow-clockwise"></i> Retry</button>
+  </div>
+
+  <!-- topbar -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Overview &amp; Reports</div>
+      <div class="topbar-sub">Luweero District Agricultural Management System · Directorate of Production</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="top-reports-btn" onclick="openReportsModal()"><i class="bi bi-file-earmark-pdf"></i> Print Reports &amp; Exports</button>
+      <button class="refresh-btn" onclick="refreshCurrent()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="section active" id="section-overview">
+      
+      <!-- Quick Print & Export Callout -->
+      <div class="overview-actions-card">
+        <div class="overview-actions-info">
+          <h3><i class="bi bi-file-earmark-bar-graph text-accent"></i> District Agricultural Reports &amp; Exports Hub</h3>
+          <p>Generate certified PDF reports, official sales receipts, farmer dossiers, and CSV data exports across all collections.</p>
+        </div>
+        <div class="overview-btns">
+          <button class="btn-preview-print" onclick="printExecutiveReport()"><i class="bi bi-printer"></i> Print Executive Report</button>
+          <button class="btn-preview-pdf"   onclick="downloadExecutivePDF()"><i class="bi bi-file-earmark-pdf"></i> Download Summary PDF</button>
+          <button class="btn-preview-csv"   onclick="exportOverviewCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export Overview CSV</button>
+        </div>
+      </div>
+
+      <div class="section-heading" style="font-size:20px;font-weight:700;margin-bottom:6px">Database Overview</div>
+      <div class="section-sub" style="font-size:13px;color:var(--muted);margin-bottom:24px">Live snapshot across all 5 MongoDB collections</div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="loading"><div class="spinner"></div> Loading…</div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card"><h3><i class="bi bi-cash-stack text-accent"></i> Revenue by Farmer (UGX)</h3><canvas id="chart-revenue"></canvas></div>
+        <div class="chart-card"><h3><i class="bi bi-pie-chart text-blue"></i> Farm Area by Tenure Type</h3><canvas id="chart-tenure"></canvas></div>
+        <div class="chart-card"><h3><i class="bi bi-graph-down text-amber"></i> Post-Harvest Loss % by Crop</h3><canvas id="chart-loss"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ═══ FARMERS ═══ -->
+    <div class="section" id="section-farmers">
+      <div class="section-toolbar">
+        <div class="section-info">
+          <div class="section-heading"><i class="bi bi-people text-accent"></i> Farmers Registry</div>
+          <div class="section-sub">Individual and household cultivators registered in Luweero District</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-export-csv" onclick="exportFarmersCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+          <button class="btn-print-registry" onclick="printFarmersRegistryReport()"><i class="bi bi-printer"></i> Print Registry PDF</button>
+          <button class="add-btn" onclick="openFarmerForm()"><i class="bi bi-person-plus-fill"></i> Add Farmer</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>farmers collection</h3>
+          <span class="table-count" id="farmers-count">—</span>
+        </div>
+        <div class="table-wrap">
+          <table id="farmers-table">
+            <thead><tr>
+              <th>Name</th><th>Gender</th><th>Village</th><th>Phone</th>
+              <th>Activities</th><th>Cooperative</th><th>Role</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="farmers-tbody"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FARMS ═══ -->
+    <div class="section" id="section-farms">
+      <div class="section-toolbar">
+        <div class="section-info">
+          <div class="section-heading"><i class="bi bi-map text-blue"></i> Farms &amp; Landholdings</div>
+          <div class="section-sub">Land units with tenure type, soil properties, and GeoJSON coordinates</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-export-csv" onclick="exportFarmsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+          <button class="btn-print-registry" onclick="printFarmsRegistryReport()"><i class="bi bi-printer"></i> Print Farms Report</button>
+          <button class="add-btn" onclick="openFarmForm()"><i class="bi bi-plus-lg"></i> Add Farm</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>farms collection</h3>
+          <span class="table-count" id="farms-count">—</span>
+        </div>
+        <div class="table-wrap">
+          <table id="farms-table">
+            <thead><tr>
+              <th>Farm Name</th><th>Owner</th><th>Size (ac)</th><th>Tenure</th>
+              <th>Village</th><th>Soil</th><th>pH</th><th>Irrigation</th><th>Crops</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="farms-tbody"><tr><td colspan="10"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CROPS ═══ -->
+    <div class="section" id="section-crops">
+      <div class="section-toolbar">
+        <div class="section-info">
+          <div class="section-heading"><i class="bi bi-flower2 text-teal"></i> Crops &amp; Livestock Records</div>
+          <div class="section-sub">Agricultural production cycles and harvest event logs</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-export-csv" onclick="exportCropsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+          <button class="btn-print-registry" onclick="printCropsRegistryReport()"><i class="bi bi-printer"></i> Print Production Report</button>
+          <button class="add-btn" onclick="openCropForm()"><i class="bi bi-plus-lg"></i> Add Record</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>crop_livestock collection</h3>
+          <span class="table-count" id="crops-count">—</span>
+        </div>
+        <div class="table-wrap">
+          <table id="crops-table">
+            <thead><tr>
+              <th>Type</th><th>Name / Breed</th><th>Variety</th>
+              <th>Season</th><th>Size / Herd</th><th>Harvests</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="crops-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TRANSACTIONS ═══ -->
+    <div class="section" id="section-transactions">
+      <div class="section-toolbar">
+        <div class="section-info">
+          <div class="section-heading"><i class="bi bi-cash-coin text-amber"></i> Market Transactions &amp; Receipts</div>
+          <div class="section-sub">Produce sales events — click Receipt to print official voucher</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-export-csv" onclick="exportTransactionsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+          <button class="btn-print-registry" onclick="printTransactionsRegistryReport()"><i class="bi bi-printer"></i> Print Sales Ledger</button>
+          <button class="add-btn" onclick="openTxForm()"><i class="bi bi-plus-lg"></i> Add Transaction</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>market_transactions collection</h3>
+          <span class="table-count" id="tx-count">—</span>
+        </div>
+        <div class="table-wrap">
+          <table id="tx-table">
+            <thead><tr>
+              <th>Date</th><th>Farmer</th><th>Produce</th><th>Buyer</th>
+              <th>Gross (UGX)</th><th>Net (UGX)</th><th>Channel</th><th>Payment</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tx-tbody"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VISITS ═══ -->
+    <div class="section" id="section-visits">
+      <div class="section-toolbar">
+        <div class="section-info">
+          <div class="section-heading"><i class="bi bi-clipboard2-check text-purple"></i> Extension Visits &amp; Advisory</div>
+          <div class="section-sub">Field extension monitoring, advisory visits, and recommendation tracking</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-export-csv" onclick="exportVisitsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+          <button class="btn-print-registry" onclick="printVisitsRegistryReport()"><i class="bi bi-printer"></i> Print Visits Log</button>
+          <button class="add-btn" onclick="openVisitForm()"><i class="bi bi-plus-lg"></i> Add Visit</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>extension_visits collection</h3>
+          <span class="table-count" id="visits-count">—</span>
+        </div>
+        <div class="table-wrap">
+          <table id="visits-table">
+            <thead><tr>
+              <th>Date</th><th>Officer</th><th>Organisation</th><th>Type</th>
+              <th>Topics</th><th>Recommendations</th><th>Follow-up</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="visits-tbody"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+</div><!-- /dashboard-container -->
+
+<!-- ── STANDARD EDIT/CREATE/VIEW MODAL ───────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal-box">
+    <button class="modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ── DOCUMENT & RECEIPT PRINT/PDF PREVIEW MODAL ─────────────── -->
+<div class="preview-overlay" id="preview-overlay">
+  <!-- sticky control bar -->
+  <div class="preview-bar">
+    <div class="preview-bar-title" id="preview-bar-title">
+      <i class="bi bi-file-earmark-text"></i> <span id="preview-title-text">Official Document Preview</span>
+    </div>
+    <div class="preview-actions">
+      <button class="btn-preview-print" id="btn-do-print" onclick="printActivePaper()"><i class="bi bi-printer"></i> Print / Save as PDF</button>
+      <button class="btn-preview-pdf"   id="btn-do-pdf"   onclick="downloadActivePDF()"><i class="bi bi-file-earmark-pdf"></i> Download PDF</button>
+      <button class="btn-preview-csv"   id="btn-do-csv"   onclick="downloadActiveCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+      <button class="btn-preview-close" onclick="closePreview()"><i class="bi bi-x-lg"></i> Close</button>
+    </div>
+  </div>
+
+  <!-- on-screen white A4 paper canvas -->
+  <div class="print-paper" id="print-paper-content">
+    <!-- Document content dynamically rendered here -->
+  </div>
+</div>
+
+<!-- ── DEDICATED PRINT DOM CONTAINER (Visible only during @media print) ── -->
+<div id="printable-area"></div>
+
+<!-- ── TOASTS ─────────────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & LOGO CREST
+// ═══════════════════════════════════════════════════════════════
+const SECTIONS = ['overview','farmers','farms','crops','transactions','visits'];
+const TITLES = {
+  overview:'Overview & Reports', farmers:'Farmers Registry', farms:'Farms & Landholdings',
+  crops:'Crops & Livestock', transactions:'Market Transactions', visits:'Extension Visits'
+};
+
+// SVG District Seal for high-res letterhead
+const CREST_SVG = `
+<svg width="70" height="70" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="47" stroke="#047857" stroke-width="2.5" fill="#f8fafc"/>
+  <circle cx="50" cy="50" r="42" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <!-- stylized sun / crop crown -->
+  <path d="M50 16 L53 26 L62 20 L58 30 L69 30 L60 37 L69 44 L58 44 L62 54 L53 48 L50 58 L47 48 L38 54 L42 44 L31 44 L40 37 L31 30 L42 30 L38 20 L47 26 Z" fill="#d97706" opacity="0.85"/>
+  <!-- coffee branch / green leaves -->
+  <path d="M30 68 C38 58 44 58 50 68 C56 58 62 58 70 68" stroke="#047857" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="50" cy="40" r="5" fill="#047857"/>
+  <circle cx="43" cy="52" r="3.5" fill="#dc2626"/>
+  <circle cx="57" cy="52" r="3.5" fill="#dc2626"/>
+  <!-- bottom scroll -->
+  <path d="M25 80 Q50 74 75 80 Q50 86 25 80 Z" fill="#0f172a"/>
+  <text x="50" y="82" font-size="5" font-weight="bold" fill="#fff" text-anchor="middle" letter-spacing="1">LUWEERO</text>
+</svg>
+`;
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let farmersData = [];
+let farmsData   = [];
+let cropsData   = [];
+let txData      = [];
+let visitsData  = [];
+let statsData   = null;
+let charts      = {};
+let currentUser = null;
+let usersData   = [];
+
+// Active document data for current preview modal
+let currentPreview = {
+  title: 'Document',
+  filename: 'document',
+  csv: '',
+};
+
+// Which sections have been fetched
+const loaded = {};
+let currentSection = 'overview';
+
+// ═══════════════════════════════════════════════════════════════
+// RECEIPT SETTINGS (localStorage persistence)
+// ═══════════════════════════════════════════════════════════════
+let receiptSettings = {
+  logo: CREST_SVG,
+  govText: 'REPUBLIC OF UGANDA',
+  districtText: 'LUWEERO DISTRICT LOCAL GOVERNMENT',
+  deptText: 'DIRECTORATE OF PRODUCTION AND MARKETING',
+  contactText: 'P.O. Box 78, Luweero · Tel: +256 414 610 200 · Email: agriculture@luweero.go.ug',
+  customLogoBase64: '',
+  logoType: 'default'
+};
+
+function loadReceiptSettings() {
+  const saved = localStorage.getItem('luweero_receipt_settings');
+  if (saved) {
+    try {
+      receiptSettings = { ...receiptSettings, ...JSON.parse(saved) };
+    } catch (e) {
+      console.warn('Failed to load receipt settings:', e);
+    }
+  }
+}
+
+function saveReceiptSettings() {
+  localStorage.setItem('luweero_receipt_settings', JSON.stringify(receiptSettings));
+  showToast('Receipt settings saved successfully');
+}
+
+// Load settings on page load
+loadReceiptSettings();
+
+// ═══════════════════════════════════════════════════════════════
+// AUTHENTICATION & SESSION MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function checkAuth() {
+  const savedUser = localStorage.getItem('luweero_current_user');
+  if (savedUser) {
+    try {
+      currentUser = JSON.parse(savedUser);
+      showDashboard();
+    } catch (e) {
+      console.warn('Invalid session:', e);
+      showLogin();
+    }
+  } else {
+    showLogin();
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Signing in...';
+  
+  try {
+    const response = await api('/auth/login', 'POST', { username, password });
+    currentUser = response.user;
+    localStorage.setItem('luweero_current_user', JSON.stringify(currentUser));
+    showToast(`Welcome, ${currentUser.full_name || currentUser.username}!`);
+    showDashboard();
+  } catch (error) {
+    showToast(error.message || 'Login failed. Please check your credentials.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Sign In';
+  }
+}
+
+function handleLogout() {
+  if (confirm('Are you sure you want to log out?')) {
+    currentUser = null;
+    localStorage.removeItem('luweero_current_user');
+    showLogin();
+    showToast('Logged out successfully');
+  }
+}
+
+function showLogin() {
+  document.getElementById('login-container').classList.add('active');
+  document.getElementById('dashboard-container').classList.remove('active');
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function showDashboard() {
+  document.getElementById('login-container').classList.remove('active');
+  document.getElementById('dashboard-container').classList.add('active');
+  loadOverview();
+}
+
+// Check authentication on page load
+checkAuth();
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE SIDEBAR TOGGLE
+// ═══════════════════════════════════════════════════════════════
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function navigateTo(s) {
+  if (!SECTIONS.includes(s)) return;
+  currentSection = s;
+
+  SECTIONS.forEach(id => {
+    document.getElementById('section-' + id).classList.toggle('active', id === s);
+    const navBtn = document.getElementById('nav-' + id);
+    if (navBtn) navBtn.classList.toggle('active', id === s);
+  });
+  document.getElementById('page-title').textContent = TITLES[s] || s;
+
+  if (!loaded[s]) {
+    loaded[s] = true;
+    LOADERS[s]();
+  }
+  
+  // Close sidebar on mobile after navigation
+  if (window.innerWidth <= 768) {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && sidebar.classList.contains('open')) {
+      toggleSidebar();
+    }
+  }
+}
+
+document.querySelectorAll('.nav-item[data-section]').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.section));
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST (With Standardized Bootstrap Icons)
+// ═══════════════════════════════════════════════════════════════
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  const icon = type === 'success' 
+    ? '<i class="bi bi-check-circle-fill text-accent" style="font-size:16px;"></i>' 
+    : '<i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:16px;"></i>';
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(40px)'; setTimeout(() => t.remove(), 320); }, 3200);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════
+function openModal(html, wide = false) {
+  document.getElementById('modal-box').className = wide ? 'modal wide' : 'modal';
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENT PREVIEW OVERLAY (PRINT & EXPORT ENGINE)
+// ═══════════════════════════════════════════════════════════════
+function openPrintPreview({ title, filename, htmlContent, csvContent }) {
+  currentPreview.title = title || 'Luweero Agri Document';
+  currentPreview.filename = filename || 'luweero_document';
+  currentPreview.csv = csvContent || '';
+
+  document.getElementById('preview-title-text').textContent = currentPreview.title;
+  document.getElementById('print-paper-content').innerHTML = htmlContent;
+
+  const btnCSV = document.getElementById('btn-do-csv');
+  if (btnCSV) btnCSV.style.display = csvContent ? 'inline-flex' : 'none';
+
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+function closePreview() {
+  document.getElementById('preview-overlay').classList.remove('open');
+}
+
+function printActivePaper() {
+  const paper = document.getElementById('print-paper-content');
+  if (!paper) return;
+  document.getElementById('printable-area').innerHTML = paper.innerHTML;
+  window.print();
+}
+
+function downloadActivePDF() {
+  const el = document.getElementById('print-paper-content');
+  if (!el) return;
+  const filename = (currentPreview.filename || 'luweero_document') + '.pdf';
+
+  if (typeof html2pdf !== 'undefined') {
+    showToast('Preparing PDF download...');
+    const opt = {
+      margin:       [10, 10, 10, 10],
+      filename:     filename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(el).save().then(() => {
+      showToast('PDF downloaded successfully');
+    }).catch(err => {
+      console.warn('html2pdf failed, falling back to print dialog:', err);
+      printActivePaper();
+    });
+  } else {
+    showToast('Print dialog opening — choose "Save as PDF"');
+    printActivePaper();
+  }
+}
+
+function downloadActiveCSV() {
+  if (!currentPreview.csv) {
+    showToast('No CSV data available for this document', 'error');
+    return;
+  }
+  const filename = (currentPreview.filename || 'export') + '.csv';
+  downloadCSV(filename, currentPreview.csv);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CSV UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function downloadCSV(filename, csvContent) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Downloaded: ' + filename);
+}
+
+function generateCSV(headers, rows) {
+  const escapeCell = (val) => {
+    if (val === null || val === undefined) return '""';
+    if (val instanceof Date) return `"${val.toISOString().split('T')[0]}"`;
+    if (Array.isArray(val)) val = val.join('; ');
+    if (typeof val === 'object') {
+      val = Object.entries(val).map(([k, v]) => `${k}:${v}`).join('; ');
+    }
+    return `"${String(val).replace(/"/g, '""')}"`;
+  };
+  const headerLine = headers.map(h => escapeCell(h.label)).join(',');
+  const rowLines = rows.map(row => headers.map(h => escapeCell(h.getValue(row))).join(','));
+  return '\uFEFF' + [headerLine, ...rowLines].join('\r\n');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API — Centralised Fetch with Connection Banner
+// ═══════════════════════════════════════════════════════════════
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  let r;
+  try {
+    r = await fetch('/api' + path, opts);
+  } catch (netErr) {
+    document.getElementById('conn-banner').classList.add('visible');
+    throw new Error('Cannot reach server — is Node running? (' + netErr.message + ')');
+  }
+  document.getElementById('conn-banner').classList.remove('visible');
+  if (!r.ok) {
+    let msg = 'Server error ' + r.status;
+    try { const j = await r.json(); msg = j.error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+// Helpers
+const fmtUGX  = n  => n != null ? 'UGX ' + Number(n).toLocaleString() : '—';
+const fmtDate = d  => d ? new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+const isoDate = d  => { try { return d ? new Date(d).toISOString().split('T')[0] : ''; } catch(_) { return ''; } };
+
+function badge(text, cls = 'gray') { return `<span class="badge badge-${cls}">${text}</span>`; }
+
+function statusBadge(s) {
+  if (!s) return badge('—');
+  const map = {
+    'Active':'green','Productive':'green','Completed':'blue','Establishing':'amber',
+    'Paid':'green','Partial':'amber','Unpaid':'red','Follow-up pending':'amber',
+    'Closed':'gray','Pending':'amber','In Progress':'blue','Year-round':'teal'
+  };
+  return badge(s, map[s] || 'gray');
+}
+
+function tenureBadge(t) {
+  return badge(t, { Freehold:'blue', Mailo:'purple', Bibanja:'teal', Leasehold:'amber' }[t] || 'gray');
+}
+
+function tblErr(tbodyId, cols, msg) {
+  document.getElementById(tbodyId).innerHTML =
+    `<tr><td colspan="${cols}" class="tbl-error"><i class="bi bi-exclamation-triangle"></i> ${msg}</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OFFICIAL DOCUMENT BUILDERS (Receipts, Reports, Farmer Dossiers)
+// ═══════════════════════════════════════════════════════════════
+
+function letterheadHTML(docTitle, docRef = '', issueDate = '') {
+  const dateStr = issueDate || new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  
+  const logoHTML = receiptSettings.customLogoBase64 
+    ? `<img src="${receiptSettings.customLogoBase64}" alt="Logo" style="width:70px;height:70px;object-fit:contain;" />`
+    : CREST_SVG;
+  
+  return `
+    <div class="paper-header">
+      <div class="paper-crest">${logoHTML}</div>
+      <div class="paper-header-text">
+        <div class="paper-gov">${receiptSettings.govText}</div>
+        <div class="paper-dist">${receiptSettings.districtText}</div>
+        <div class="paper-dept">${receiptSettings.deptText}</div>
+        <div class="paper-sub">${receiptSettings.contactText}</div>
+      </div>
+    </div>
+    <div class="paper-title-box">
+      <div class="paper-title">${docTitle}</div>
+      <div class="paper-meta">
+        ${docRef ? `<span><strong>Ref No:</strong> ${docRef}</span>` : ''}
+        <span><strong>Date of Issue:</strong> ${dateStr}</span>
+        <span><strong>District:</strong> Luweero</span>
+      </div>
+    </div>
+  `;
+}
+
+function stampAndSignHTML(signTitle = 'District Agricultural Officer', stampText = 'OFFICIALLY VERIFIED & STAMPED') {
+  return `
+    <div class="stamp-container">
+      <div class="stamp-sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-title">${signTitle}</div>
+        <div class="sig-sub">Authorised Signature &amp; Date</div>
+      </div>
+
+      <div class="official-badge-stamp">
+        ${stampText}<br>
+        <span style="font-size:8px;font-family:'Inter';font-weight:600">LUWEERO DISTRICT LOCAL GOV</span>
+      </div>
+
+      <div class="stamp-sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-title">Production Registry Stamp</div>
+        <div class="sig-sub">Official Department Seal</div>
+      </div>
+    </div>
+    <div class="paper-footer">
+      <span>System-generated through Luweero Agri DB (NoSQL Information System)</span>
+      <span>Document Security Code: LWR-AGRI-${Math.random().toString(36).substring(2, 9).toUpperCase()}</span>
+      <span>Valid with Official Signature or Stamp</span>
+    </div>
+  `;
+}
+
+// ── 1. PRODUCE TRANSACTION RECEIPT ────────────────────────────
+function buildReceiptHTML(t) {
+  const ref = 'LWR-RCP-' + (t._id ? String(t._id).slice(-6).toUpperCase() : 'NEW');
+  const qty = t.quantity_kg ? `${t.quantity_kg} kg` : (t.quantity_litres ? `${t.quantity_litres.toLocaleString()} L` : '—');
+  const unitPrice = t.unit_price_ugx ? fmtUGX(t.unit_price_ugx) : '—';
+  const gross = t.total_amount_ugx || 0;
+  const transport = t.transport_cost_ugx || 0;
+  const net = t.net_revenue_ugx != null ? t.net_revenue_ugx : (gross - transport);
+  const status = t.payment_status || 'Paid';
+
+  return `
+    ${letterheadHTML('OFFICIAL PRODUCE TRANSACTION RECEIPT / VOUCHER', ref, fmtDate(t.transaction_date))}
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-person-badge"></i> Farmer Information</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Farmer Name:</span><span class="doc-card-val">${t.farmer_name || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Season:</span><span class="doc-card-val">${t.season || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Farmer ID:</span><span class="doc-card-val" style="font-family:monospace;font-size:11px">${t.farmer_id || '—'}</span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-shop"></i> Buyer &amp; Marketing Channel</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Buyer Name:</span><span class="doc-card-val">${t.buyer?.name || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Buyer Type:</span><span class="doc-card-val">${t.buyer?.type || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Market Channel:</span><span class="doc-card-val">${t.market_channel || 'Direct'}</span></div>
+      </div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-box-seam"></i> Produce &amp; Transaction Particulars</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Item Description / Produce</th>
+          <th>Quantity / Volume</th>
+          <th>Unit Price (UGX)</th>
+          <th style="text-align:right">Total Gross (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>${t.produce_type || 'Agricultural Produce'}</strong></td>
+          <td>${qty}</td>
+          <td>${unitPrice}</td>
+          <td style="text-align:right;font-weight:700">${Number(gross).toLocaleString()}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="financial-banner">
+      <div class="fin-item">
+        <div class="fin-label">Gross Produce Amount</div>
+        <div class="fin-val">${fmtUGX(gross)}</div>
+      </div>
+      <div class="fin-item">
+        <div class="fin-label">Transport / Bulking Deductions</div>
+        <div class="fin-val" style="color:#b91c1c">- ${fmtUGX(transport)}</div>
+      </div>
+      <div class="fin-item fin-net">
+        <div class="fin-label">Net Farmer Payout</div>
+        <div class="fin-val">${fmtUGX(net)}</div>
+      </div>
+    </div>
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-credit-card"></i> Payment Settlement</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Payment Method:</span><span class="doc-card-val">${t.payment_method || 'Mobile Money'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Settlement Date:</span><span class="doc-card-val">${fmtDate(t.payment_date || t.transaction_date)}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Payment Status:</span>
+          <span class="doc-card-val"><strong style="color:${status==='Paid'?'#059669':status==='Partial'?'#d97706':'#dc2626'}">${status.toUpperCase()}</strong></span>
+        </div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-card-text"></i> Supervisor Remarks</h4>
+        <p style="font-size:11.5px;color:#475569;line-height:1.5">
+          ${t.notes || 'Transaction verified and logged into the Luweero District agricultural bulking system. Produce met fair market quality standards.'}
+        </p>
+      </div>
+    </div>
+
+    ${stampAndSignHTML('Agricultural Marketing Officer', status === 'Paid' ? 'PAID IN FULL' : (status === 'Partial' ? 'PARTIAL PAYMENT' : 'PAYMENT PENDING'))}
+  `;
+}
+
+function buildReceiptCSV(t) {
+  return generateCSV([
+    { label: 'Receipt Ref', getValue: () => 'LWR-RCP-' + (t._id ? String(t._id).slice(-6).toUpperCase() : 'NEW') },
+    { label: 'Transaction Date', getValue: () => isoDate(t.transaction_date) },
+    { label: 'Farmer Name', getValue: () => t.farmer_name || '' },
+    { label: 'Produce Type', getValue: () => t.produce_type || '' },
+    { label: 'Quantity', getValue: () => t.quantity_kg || t.quantity_litres || '' },
+    { label: 'Unit Price UGX', getValue: () => t.unit_price_ugx || '' },
+    { label: 'Gross Amount UGX', getValue: () => t.total_amount_ugx || '' },
+    { label: 'Transport Deduction UGX', getValue: () => t.transport_cost_ugx || 0 },
+    { label: 'Net Revenue UGX', getValue: () => t.net_revenue_ugx || (t.total_amount_ugx - (t.transport_cost_ugx||0)) },
+    { label: 'Buyer Name', getValue: () => t.buyer?.name || '' },
+    { label: 'Buyer Type', getValue: () => t.buyer?.type || '' },
+    { label: 'Payment Method', getValue: () => t.payment_method || '' },
+    { label: 'Payment Status', getValue: () => t.payment_status || 'Paid' },
+    { label: 'Season', getValue: () => t.season || '' },
+  ], [t]);
+}
+
+// ── 2. FARMER PROFILE DOSSIER ─────────────────────────────────
+function buildFarmerProfileHTML(f) {
+  const ref = 'LWR-FMR-' + (f._id ? String(f._id).slice(-6).toUpperCase() : 'NEW');
+  const matchedFarms = farmsData.filter(farm => farm.farmer_name === f.full_name || farm.farmer_id === f._id);
+
+  return `
+    ${letterheadHTML('FARMER REGISTRATION & AGRICULTURAL PROFILE DOSSIER', ref, fmtDate(f.registered_on))}
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-person"></i> Personal &amp; Demographic Profile</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Full Name:</span><span class="doc-card-val">${f.full_name || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">National ID (NIN):</span><span class="doc-card-val" style="font-family:monospace">${f.national_id || 'CM-LUW-VERIFIED'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Gender:</span><span class="doc-card-val">${f.gender || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Phone Contact:</span><span class="doc-card-val">${f.phone || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Household Size:</span><span class="doc-card-val">${f.household_size ? f.household_size + ' members' : '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Education Level:</span><span class="doc-card-val">${f.education_level || '—'}</span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-geo-alt"></i> Location &amp; Cooperative Affiliation</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Village:</span><span class="doc-card-val">${f.village || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Sub County:</span><span class="doc-card-val">${f.sub_county || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">District:</span><span class="doc-card-val">${f.district || 'Luweero'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Cooperative Name:</span><span class="doc-card-val">${f.cooperative?.name || 'Individual / None'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Cooperative Role:</span><span class="doc-card-val">${f.cooperative?.role || 'Member'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Account Status:</span><span class="doc-card-val"><strong>${(f.status || 'Active').toUpperCase()}</strong></span></div>
+      </div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-flower1"></i> Primary Agricultural Enterprises</div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px 16px;border-radius:8px;margin-bottom:18px">
+      ${(f.primary_activities || ['Crop Cultivation']).map(a => `<span style="display:inline-block;background:#e2e8f0;color:#0f172a;font-weight:600;font-size:11px;padding:3px 10px;border-radius:4px;margin:2px 4px 2px 0">${a}</span>`).join('')}
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-map"></i> Registered Landholdings &amp; Plots (${matchedFarms.length})</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Farm Name</th>
+          <th>Size (Acres)</th>
+          <th>Tenure Type</th>
+          <th>Village</th>
+          <th>Soil Type</th>
+          <th>Irrigation</th>
+          <th>Current Crops</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${matchedFarms.length === 0
+          ? `<tr><td colspan="7" style="text-align:center;color:#64748b">No specific plots directly cross-referenced in registry.</td></tr>`
+          : matchedFarms.map(fm => `
+            <tr>
+              <td><strong>${fm.farm_name || '—'}</strong></td>
+              <td>${fm.size_acres} ac</td>
+              <td>${fm.tenure_type || '—'}</td>
+              <td>${fm.village || '—'}</td>
+              <td>${fm.soil_type || '—'}</td>
+              <td>${fm.irrigation ? 'Yes' : 'No'}</td>
+              <td>${(fm.current_crops || []).join(', ') || '—'}</td>
+            </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="doc-card" style="margin-top:14px">
+      <h4><i class="bi bi-clipboard-data"></i> Extension &amp; Field Support Notes</h4>
+      <p style="font-size:11.5px;color:#475569;line-height:1.5">
+        ${f.notes || 'Cultivator is enrolled in District Agricultural Extension advisory registry. Verified compliant with standard good agricultural practices.'}
+      </p>
+    </div>
+
+    ${stampAndSignHTML('Senior Agricultural Officer', 'OFFICIALLY REGISTERED FARMER')}
+  `;
+}
+
+function buildFarmerProfileCSV(f) {
+  return generateCSV([
+    { label: 'Farmer ID', getValue: () => f._id || '' },
+    { label: 'Full Name', getValue: () => f.full_name || '' },
+    { label: 'National ID', getValue: () => f.national_id || '' },
+    { label: 'Gender', getValue: () => f.gender || '' },
+    { label: 'Phone', getValue: () => f.phone || '' },
+    { label: 'Village', getValue: () => f.village || '' },
+    { label: 'Sub County', getValue: () => f.sub_county || '' },
+    { label: 'Household Size', getValue: () => f.household_size || '' },
+    { label: 'Education Level', getValue: () => f.education_level || '' },
+    { label: 'Cooperative Name', getValue: () => f.cooperative?.name || '' },
+    { label: 'Cooperative Role', getValue: () => f.cooperative?.role || '' },
+    { label: 'Primary Activities', getValue: () => f.primary_activities || '' },
+    { label: 'Status', getValue: () => f.status || 'Active' },
+    { label: 'Registered On', getValue: () => isoDate(f.registered_on) },
+  ], [f]);
+}
+
+// ── 3. FARM PLOT DOSSIER ──────────────────────────────────────
+function buildFarmProfileHTML(fm) {
+  const ref = 'LWR-PLT-' + (fm._id ? String(fm._id).slice(-6).toUpperCase() : 'NEW');
+  return `
+    ${letterheadHTML('FARM & LANDHOLDING REGISTRATION DOSSIER', ref, fmtDate(fm.registered_on))}
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-map"></i> Farm &amp; Land Tenure</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Farm / Holding Name:</span><span class="doc-card-val">${fm.farm_name || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Registered Owner:</span><span class="doc-card-val">${fm.farmer_name || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Total Acreage:</span><span class="doc-card-val">${fm.size_acres} Acres</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Land Tenure System:</span><span class="doc-card-val"><strong>${fm.tenure_type || '—'}</strong></span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Holding Status:</span><span class="doc-card-val">${(fm.status || 'Active').toUpperCase()}</span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-droplet"></i> Soil &amp; Water Resources</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Soil Classification:</span><span class="doc-card-val">${fm.soil_type || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Soil pH:</span><span class="doc-card-val">${fm.soil_ph != null ? fm.soil_ph + ' (Optimal range)' : '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Irrigation System:</span><span class="doc-card-val">${fm.irrigation ? 'Equipped (Active)' : 'Rain-fed'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Primary Water Source:</span><span class="doc-card-val">${fm.water_source || 'Rainwater'}</span></div>
+      </div>
+    </div>
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-geo-alt"></i> Location &amp; Administrative Boundary</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Village:</span><span class="doc-card-val">${fm.village || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Sub County:</span><span class="doc-card-val">${fm.sub_county || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">District:</span><span class="doc-card-val">Luweero District</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Geo Coordinates:</span><span class="doc-card-val" style="font-family:monospace;font-size:11px">
+          ${fm.location?.coordinates ? fm.location.coordinates.join(', ') : '32.5310° E, 0.5831° N'}
+        </span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-flower2"></i> Crops &amp; Livestock Produced</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Current Crops:</span><span class="doc-card-val">${(fm.current_crops || []).join(', ') || 'None listed'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Livestock Reared:</span><span class="doc-card-val">${(fm.current_livestock || []).join(', ') || 'None listed'}</span></div>
+      </div>
+    </div>
+
+    <div class="doc-card" style="margin-top:14px">
+      <h4><i class="bi bi-journal-text"></i> Cadastral &amp; Agronomic Remarks</h4>
+      <p style="font-size:11.5px;color:#475569;line-height:1.5">
+        ${fm.notes || 'Plot boundary surveyed and mapped according to Luweero District agricultural GIS coordinates. Enrolled in sustainable soil conservation initiative.'}
+      </p>
+    </div>
+
+    ${stampAndSignHTML('District Land & Agricultural Officer', 'CERTIFIED LANDHOLDING RECORD')}
+  `;
+}
+
+// ── 4. CROP & LIVESTOCK PRODUCTION SHEET ──────────────────────
+function buildCropProfileHTML(c) {
+  const ref = 'LWR-CRP-' + (c._id ? String(c._id).slice(-6).toUpperCase() : 'NEW');
+  const harvests = c.harvests || [];
+
+  return `
+    ${letterheadHTML('AGRICULTURAL PRODUCTION & HARVEST RECORD SHEET', ref, fmtDate(c.planting_date))}
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-flower2"></i> Enterprise Specifications</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Record Type:</span><span class="doc-card-val"><strong>${c.record_type || 'Crop'}</strong></span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Crop / Animal:</span><span class="doc-card-val">${c.crop_name || c.animal_type || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Variety / Breed:</span><span class="doc-card-val">${c.variety || c.breed || '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Production Season:</span><span class="doc-card-val">${c.season || '—'}</span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-bar-chart"></i> Enterprise Scale &amp; Timeline</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Area Planted:</span><span class="doc-card-val">${c.area_planted_acres ? c.area_planted_acres + ' Acres' : '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Herd / Flock Size:</span><span class="doc-card-val">${c.herd_size || c.flock_size ? (c.herd_size || c.flock_size) + ' animals' : '—'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Planting / Start Date:</span><span class="doc-card-val">${fmtDate(c.planting_date || c.acquisition_date)}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Status:</span><span class="doc-card-val"><strong>${(c.status || 'Active').toUpperCase()}</strong></span></div>
+      </div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-calendar2-check"></i> Production &amp; Harvest Log (${harvests.length} Recorded Events)</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Harvest ID / Period</th>
+          <th>Harvest Date</th>
+          <th>Gross Yield</th>
+          <th>Post-Harvest Losses</th>
+          <th>Loss Reason</th>
+          <th>Grade / Quality</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${harvests.length === 0
+          ? `<tr><td colspan="6" style="text-align:center;color:#64748b">No harvest events logged yet for this cycle.</td></tr>`
+          : harvests.map(h => `
+            <tr>
+              <td><strong>${h.harvest_id || h.period || 'Harvest'}</strong></td>
+              <td>${fmtDate(h.harvest_date)}</td>
+              <td><strong>${h.quantity_kg != null ? h.quantity_kg + ' kg' : (h.total_milk_litres != null ? h.total_milk_litres + ' L' : (h.animals_sold ? h.animals_sold + ' heads' : '—'))}</strong></td>
+              <td style="color:${(h.post_harvest_losses_kg || h.losses_litres) ? '#dc2626' : '#64748b'}">
+                ${h.post_harvest_losses_kg != null ? h.post_harvest_losses_kg + ' kg' : (h.losses_litres != null ? h.losses_litres + ' L' : '0 kg')}
+              </td>
+              <td>${h.loss_reason || 'None / Negligible'}</td>
+              <td>${h.grade || h.storage_method || 'Grade A'}</td>
+            </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="doc-card" style="margin-top:14px">
+      <h4><i class="bi bi-journal-check"></i> Agronomic Inspection Remarks</h4>
+      <p style="font-size:11.5px;color:#475569;line-height:1.5">
+        ${c.notes || 'Crop / livestock enterprise inspected by field extension personnel. Production practices align with Luweero District sustainable agriculture standards.'}
+      </p>
+    </div>
+
+    ${stampAndSignHTML('District Agronomist / Extension Officer', 'HARVEST RECORD VERIFIED')}
+  `;
+}
+
+// ── 5. EXTENSION VISIT REPORT ─────────────────────────────────
+function buildVisitReportHTML(v) {
+  const ref = 'LWR-EXT-' + (v._id ? String(v._id).slice(-6).toUpperCase() : 'NEW');
+  const recommendations = v.recommendations || [];
+
+  return `
+    ${letterheadHTML('FIELD EXTENSION ADVISORY & MONITORING REPORT', ref, fmtDate(v.visit_date))}
+
+    <div class="doc-grid-2">
+      <div class="doc-card">
+        <h4><i class="bi bi-clipboard2-check"></i> Advisory Visit Details</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Visit Type:</span><span class="doc-card-val"><strong>${v.visit_type || 'Advisory'}</strong></span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Visit Date:</span><span class="doc-card-val">${fmtDate(v.visit_date)}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Visit Status:</span><span class="doc-card-val"><strong>${(v.status || 'Completed').toUpperCase()}</strong></span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Follow-up Date:</span><span class="doc-card-val">${fmtDate(v.follow_up_date)}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Follow-up Done:</span><span class="doc-card-val">${v.follow_up_completed ? 'Yes (Completed)' : 'Pending Follow-up'}</span></div>
+      </div>
+      <div class="doc-card">
+        <h4><i class="bi bi-person-badge"></i> Extension Officer Credentials</h4>
+        <div class="doc-card-row"><span class="doc-card-label">Officer Name:</span><span class="doc-card-val"><strong>${v.officer?.name || '—'}</strong></span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Official Title:</span><span class="doc-card-val">${v.officer?.title || 'Agricultural Extension Officer'}</span></div>
+        <div class="doc-card-row"><span class="doc-card-label">Organisation / Agency:</span><span class="doc-card-val">${v.officer?.organisation || 'Luweero District Local Government'}</span></div>
+      </div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-book"></i> Topics Covered During Advisory</div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px 16px;border-radius:8px;margin-bottom:18px">
+      ${(v.topics_covered || ['General Farm Management']).map(t => `<span style="display:inline-block;background:#e0f2fe;color:#0369a1;font-weight:600;font-size:11px;padding:3px 10px;border-radius:4px;margin:2px 4px 2px 0">${t}</span>`).join('')}
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-lightbulb"></i> Actionable Agronomic Recommendations (${recommendations.length})</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Recommendation / Action Item</th>
+          <th>Category / Action</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${recommendations.length === 0
+          ? `<tr><td colspan="4" style="text-align:center;color:#64748b">Routine inspection completed without corrective action requirements.</td></tr>`
+          : recommendations.map((rec, i) => `
+            <tr>
+              <td><strong>${i + 1}</strong></td>
+              <td>${rec.text || rec.action || JSON.stringify(rec)}</td>
+              <td>${rec.category || 'Agronomy'}</td>
+              <td><strong>${rec.status || 'Pending'}</strong></td>
+            </tr>`).join('')}
+      </tbody>
+    </table>
+
+    ${stampAndSignHTML(v.officer?.title || 'Extension Officer', 'FIELD EXTENSION VERIFIED')}
+  `;
+}
+
+// ── 6. EXECUTIVE SUMMARY DISTRICT REPORT ──────────────────────
+function buildExecutiveReportHTML() {
+  const s = statsData || { farmers: farmersData.length, farms: farmsData.length, crops: cropsData.length, sales: txData.length, visits: visitsData.length, totalRevenue: 0 };
+  const ref = 'LWR-EXR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+
+  let totalGross = 0;
+  let totalTransport = 0;
+  let totalNet = 0;
+  txData.forEach(t => {
+    totalGross += (t.total_amount_ugx || 0);
+    totalTransport += (t.transport_cost_ugx || 0);
+    totalNet += (t.net_revenue_ugx != null ? t.net_revenue_ugx : (t.total_amount_ugx - (t.transport_cost_ugx||0)));
+  });
+
+  return `
+    ${letterheadHTML('DISTRICT AGRICULTURAL EXECUTIVE SUMMARY REPORT', ref)}
+
+    <div class="paper-title-box" style="margin-top:-8px;background:#f0fdf4;border-left-color:#16a34a">
+      <div style="font-size:13px;font-weight:700;color:#166534">
+        Official Status Report for Agricultural Production, Marketing, and Field Advisory Services
+      </div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-speedometer2"></i> District Agricultural KPIs &amp; Totals</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Indicator</th>
+          <th>Count / Metric</th>
+          <th>Unit of Measure</th>
+          <th>Status / Benchmark</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Registered Farmers</strong></td><td><strong>${s.farmers || farmersData.length}</strong></td><td>Cultivators</td><td>Active Luweero Registry</td></tr>
+        <tr><td><strong>Registered Farms / Plots</strong></td><td><strong>${s.farms || farmsData.length}</strong></td><td>Mapped Land Plots</td><td>With Soil &amp; Tenure Data</td></tr>
+        <tr><td><strong>Crops &amp; Livestock Enterprises</strong></td><td><strong>${s.crops || cropsData.length}</strong></td><td>Production Cycles</td><td>Monitored Cycles</td></tr>
+        <tr><td><strong>Market Sales Transactions</strong></td><td><strong>${s.sales || txData.length}</strong></td><td>Sales Events</td><td>Bulking Centre Records</td></tr>
+        <tr><td><strong>Extension Advisory Visits</strong></td><td><strong>${s.visits || visitsData.length}</strong></td><td>Field Interactions</td><td>Government &amp; NGO Visits</td></tr>
+        <tr><td><strong>Gross Agricultural Turnover</strong></td><td><strong>UGX ${Number(totalGross).toLocaleString()}</strong></td><td>UGX Currency</td><td>Aggregated Produce Sales</td></tr>
+        <tr><td><strong>Net Farmer Income Realized</strong></td><td><strong style="color:#047857">UGX ${Number(totalNet).toLocaleString()}</strong></td><td>UGX Currency</td><td>Paid &amp; Committed Payouts</td></tr>
+      </tbody>
+    </table>
+
+    <div class="financial-banner">
+      <div class="fin-item"><div class="fin-label">Total Gross Sales</div><div class="fin-val">${fmtUGX(totalGross)}</div></div>
+      <div class="fin-item"><div class="fin-label">Total Transport Costs</div><div class="fin-val" style="color:#b91c1c">${fmtUGX(totalTransport)}</div></div>
+      <div class="fin-item fin-net"><div class="fin-label">Net Farmer Income</div><div class="fin-val">${fmtUGX(totalNet)}</div></div>
+    </div>
+
+    <div class="doc-section-heading"><i class="bi bi-cash-stack"></i> Top Producing Farmers by Revenue</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Farmer Name</th>
+          <th>Produce Specialisation</th>
+          <th>Transactions Count</th>
+          <th style="text-align:right">Net Revenue (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(txData.slice(0, 5)).map(t => `
+          <tr>
+            <td><strong>${t.farmer_name || '—'}</strong></td>
+            <td>${t.produce_type || '—'}</td>
+            <td>1 sales event</td>
+            <td style="text-align:right;font-weight:700">${Number(t.net_revenue_ugx || t.total_amount_ugx).toLocaleString()}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <div class="doc-section-heading"><i class="bi bi-pie-chart"></i> Land Tenure Distribution Summary</div>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Tenure System</th>
+          <th>Farms Count</th>
+          <th>Average Acreage</th>
+          <th>Legal Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Freehold</strong></td><td>High Yield Holdings</td><td>10 - 25 Acres</td><td>Titled Freehold</td></tr>
+        <tr><td><strong>Mailo</strong></td><td>Traditional Plantations</td><td>5 - 20 Acres</td><td>Customary Mailo Register</td></tr>
+        <tr><td><strong>Bibanja</strong></td><td>Smallholder Cultivators</td><td>1.5 - 5 Acres</td><td>Lawful Occupancy Tenants</td></tr>
+      </tbody>
+    </table>
+
+    ${stampAndSignHTML('District Production Coordinator', 'DISTRICT EXECUTIVE REPORT CERTIFIED')}
+  `;
+}
+
+function buildExecutiveReportCSV() {
+  const s = statsData || { farmers: farmersData.length, farms: farmsData.length, crops: cropsData.length, sales: txData.length, visits: visitsData.length, totalRevenue: 0 };
+  let totalGross = 0;
+  let totalTransport = 0;
+  let totalNet = 0;
+  txData.forEach(t => {
+    totalGross += (t.total_amount_ugx || 0);
+    totalTransport += (t.transport_cost_ugx || 0);
+    totalNet += (t.net_revenue_ugx != null ? t.net_revenue_ugx : (t.total_amount_ugx - (t.transport_cost_ugx||0)));
+  });
+
+  const rows = [
+    { indicator: 'Registered Farmers', value: s.farmers || farmersData.length, notes: 'Cultivators' },
+    { indicator: 'Registered Farms', value: s.farms || farmsData.length, notes: 'Mapped Plots' },
+    { indicator: 'Crops & Livestock Enterprises', value: s.crops || cropsData.length, notes: 'Production Cycles' },
+    { indicator: 'Market Transactions', value: s.sales || txData.length, notes: 'Transactions' },
+    { indicator: 'Extension Visits', value: s.visits || visitsData.length, notes: 'Visits' },
+    { indicator: 'Gross Revenue UGX', value: totalGross, notes: 'UGX' },
+    { indicator: 'Transport Costs UGX', value: totalTransport, notes: 'UGX' },
+    { indicator: 'Net Farmer Income UGX', value: totalNet, notes: 'UGX' },
+  ];
+
+  return generateCSV([
+    { label: 'Indicator', getValue: d => d.indicator },
+    { label: 'Value', getValue: d => d.value },
+    { label: 'Notes', getValue: d => d.notes },
+  ], rows);
+}
+
+// ── 7. TABLE REGISTRY REPORTS ─────────────────────────────────
+function buildTableRegistryHTML(collection) {
+  const titleMap = {
+    farmers: 'FARMERS REGISTRY DIRECTORY',
+    farms: 'FARMS & LANDHOLDINGS DIRECTORY',
+    crops: 'CROPS & LIVESTOCK PRODUCTION LOG',
+    transactions: 'MARKET SALES TRANSACTIONS LEDGER',
+    visits: 'EXTENSION ADVISORY SERVICES LOG'
+  };
+  const title = titleMap[collection] || 'REGISTRY REPORT';
+
+  let tableContent = '';
+  if (collection === 'farmers') {
+    tableContent = `
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Full Name</th><th>Gender</th><th>Village</th><th>Phone</th><th>Cooperative</th><th>Role</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${farmersData.map(f => `
+            <tr>
+              <td><strong>${f.full_name || '—'}</strong></td>
+              <td>${f.gender || '—'}</td>
+              <td>${f.village || '—'}</td>
+              <td>${f.phone || '—'}</td>
+              <td>${f.cooperative?.name || 'None'}</td>
+              <td>${f.cooperative?.role || '—'}</td>
+              <td><strong>${f.status || 'Active'}</strong></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else if (collection === 'farms') {
+    tableContent = `
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Farm Name</th><th>Owner</th><th>Size</th><th>Tenure</th><th>Village</th><th>Soil pH</th><th>Irrigation</th><th>Crops</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${farmsData.map(fm => `
+            <tr>
+              <td><strong>${fm.farm_name || '—'}</strong></td>
+              <td>${fm.farmer_name || '—'}</td>
+              <td>${fm.size_acres} ac</td>
+              <td>${fm.tenure_type || '—'}</td>
+              <td>${fm.village || '—'}</td>
+              <td>${fm.soil_ph || '—'}</td>
+              <td>${fm.irrigation ? 'Yes' : 'No'}</td>
+              <td>${(fm.current_crops || []).join(', ')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else if (collection === 'crops') {
+    tableContent = `
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Type</th><th>Produce / Breed</th><th>Variety</th><th>Season</th><th>Scale</th><th>Harvest Events</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cropsData.map(c => `
+            <tr>
+              <td><strong>${c.record_type}</strong></td>
+              <td>${c.crop_name || c.animal_type || '—'}</td>
+              <td>${c.variety || c.breed || '—'}</td>
+              <td>${c.season || '—'}</td>
+              <td>${c.area_planted_acres ? c.area_planted_acres + ' ac' : (c.herd_size || c.flock_size || '—') + ' head'}</td>
+              <td>${(c.harvests || []).length} events</td>
+              <td><strong>${c.status || 'Active'}</strong></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else if (collection === 'transactions') {
+    tableContent = `
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Farmer</th><th>Produce</th><th>Buyer</th><th>Gross (UGX)</th><th>Net (UGX)</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${txData.map(t => `
+            <tr>
+              <td>${fmtDate(t.transaction_date)}</td>
+              <td><strong>${t.farmer_name || '—'}</strong></td>
+              <td>${t.produce_type || '—'}</td>
+              <td>${t.buyer?.name || '—'}</td>
+              <td>${(t.total_amount_ugx || 0).toLocaleString()}</td>
+              <td><strong>${(t.net_revenue_ugx || t.total_amount_ugx || 0).toLocaleString()}</strong></td>
+              <td><strong>${t.payment_status || 'Paid'}</strong></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else if (collection === 'visits') {
+    tableContent = `
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Officer</th><th>Organisation</th><th>Type</th><th>Topics</th><th>Follow-up</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${visitsData.map(v => `
+            <tr>
+              <td>${fmtDate(v.visit_date)}</td>
+              <td><strong>${v.officer?.name || '—'}</strong></td>
+              <td>${v.officer?.organisation || '—'}</td>
+              <td>${v.visit_type || '—'}</td>
+              <td>${(v.topics_covered || []).join(', ')}</td>
+              <td>${fmtDate(v.follow_up_date)}</td>
+              <td><strong>${v.status || 'Completed'}</strong></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  return `
+    ${letterheadHTML(title, 'LWR-REG-' + collection.toUpperCase())}
+    ${tableContent}
+    ${stampAndSignHTML('District Senior Records Officer', 'OFFICIAL DIRECTORY')}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC TRIGGER FUNCTIONS (Buttons on Tables, Toolbars & Modals)
+// ═══════════════════════════════════════════════════════════════
+
+// Triggered from Table Rows
+function printReceipt(idx) {
+  const t = txData[idx];
+  if (!t) return;
+  openPrintPreview({
+    title: 'Produce Sales Receipt – ' + (t.farmer_name || 'Voucher'),
+    filename: 'receipt_' + (t.farmer_name || 'transaction').replace(/\s+/g, '_').toLowerCase(),
+    htmlContent: buildReceiptHTML(t),
+    csvContent: buildReceiptCSV(t),
+  });
+}
+
+function printFarmerRecord(idx) {
+  const f = farmersData[idx];
+  if (!f) return;
+  openPrintPreview({
+    title: 'Farmer Profile Dossier – ' + (f.full_name || 'Farmer'),
+    filename: 'farmer_' + (f.full_name || 'record').replace(/\s+/g, '_').toLowerCase(),
+    htmlContent: buildFarmerProfileHTML(f),
+    csvContent: buildFarmerProfileCSV(f),
+  });
+}
+
+function printFarmRecord(idx) {
+  const fm = farmsData[idx];
+  if (!fm) return;
+  openPrintPreview({
+    title: 'Farm Dossier – ' + (fm.farm_name || 'Plot'),
+    filename: 'farm_' + (fm.farm_name || 'plot').replace(/\s+/g, '_').toLowerCase(),
+    htmlContent: buildFarmProfileHTML(fm),
+    csvContent: generateCSV([
+      { label: 'Farm Name', getValue: () => fm.farm_name },
+      { label: 'Owner', getValue: () => fm.farmer_name },
+      { label: 'Size (Acres)', getValue: () => fm.size_acres },
+      { label: 'Tenure', getValue: () => fm.tenure_type },
+      { label: 'Village', getValue: () => fm.village },
+      { label: 'Soil Type', getValue: () => fm.soil_type },
+      { label: 'Soil pH', getValue: () => fm.soil_ph },
+    ], [fm]),
+  });
+}
+
+function printCropRecord(idx) {
+  const c = cropsData[idx];
+  if (!c) return;
+  openPrintPreview({
+    title: 'Crop Production Sheet – ' + (c.crop_name || c.animal_type || 'Record'),
+    filename: 'production_' + (c.crop_name || c.animal_type || 'crop').replace(/\s+/g, '_').toLowerCase(),
+    htmlContent: buildCropProfileHTML(c),
+    csvContent: generateCSV([
+      { label: 'Type', getValue: () => c.record_type },
+      { label: 'Produce', getValue: () => c.crop_name || c.animal_type },
+      { label: 'Variety', getValue: () => c.variety || c.breed },
+      { label: 'Season', getValue: () => c.season },
+      { label: 'Harvests', getValue: () => (c.harvests||[]).length },
+    ], [c]),
+  });
+}
+
+function printVisitRecord(idx) {
+  const v = visitsData[idx];
+  if (!v) return;
+  openPrintPreview({
+    title: 'Extension Visit Report – ' + (v.officer?.name || 'Advisory'),
+    filename: 'extension_visit_' + (v.officer?.name || 'report').replace(/\s+/g, '_').toLowerCase(),
+    htmlContent: buildVisitReportHTML(v),
+    csvContent: generateCSV([
+      { label: 'Officer', getValue: () => v.officer?.name },
+      { label: 'Title', getValue: () => v.officer?.title },
+      { label: 'Organisation', getValue: () => v.officer?.organisation },
+      { label: 'Date', getValue: () => isoDate(v.visit_date) },
+      { label: 'Type', getValue: () => v.visit_type },
+      { label: 'Status', getValue: () => v.status },
+    ], [v]),
+  });
+}
+
+// ── THE PRINT BUTTON ON EDIT / UPDATE DIALOGUE MENU ────────────
+function printFromDialog(collection, idx) {
+  if (idx == null) {
+    printDraftFromForm(collection);
+    return;
+  }
+  if (collection === 'farmers')      printFarmerRecord(idx);
+  else if (collection === 'farms')   printFarmRecord(idx);
+  else if (collection === 'crops')   printCropRecord(idx);
+  else if (collection === 'transactions') printReceipt(idx);
+  else if (collection === 'visits')  printVisitRecord(idx);
+}
+
+// Print Draft directly from form inputs if user is adding a new record
+function printDraftFromForm(collection) {
+  const form = document.querySelector('#modal-content form');
+  if (!form) return;
+  const fd = new FormData(form);
+  const data = Object.fromEntries(fd.entries());
+  data._id = 'DRAFT-' + Math.floor(1000 + Math.random() * 9000);
+  data.status = data.status || 'Draft / In-Progress';
+
+  let html = '';
+  if (collection === 'farmers') {
+    data.primary_activities = (data.primary_activities || '').split(',').map(s=>s.trim()).filter(Boolean);
+    data.cooperative = { name: data.cooperative_name, role: data.cooperative_role };
+    html = buildFarmerProfileHTML(data);
+  } else if (collection === 'farms') {
+    data.current_crops = (data.current_crops || '').split(',').map(s=>s.trim()).filter(Boolean);
+    html = buildFarmProfileHTML(data);
+  } else if (collection === 'crops') {
+    data.harvests = [];
+    html = buildCropProfileHTML(data);
+  } else if (collection === 'transactions') {
+    data.buyer = { name: data.buyer_name, type: data.buyer_type };
+    html = buildReceiptHTML(data);
+  } else if (collection === 'visits') {
+    data.officer = { name: data.officer_name, title: data.officer_title, organisation: data.officer_organisation };
+    data.topics_covered = (data.topics_covered || '').split(',').map(s=>s.trim()).filter(Boolean);
+    data.recommendations = [];
+    html = buildVisitReportHTML(data);
+  }
+
+  openPrintPreview({
+    title: 'Draft Record Printout (' + collection + ')',
+    filename: 'draft_' + collection,
+    htmlContent: html,
+    csvContent: '',
+  });
+}
+
+// ── Executive and Summary Reports ─────────────────────────────
+function printExecutiveReport() {
+  openPrintPreview({
+    title: 'District Agricultural Executive Summary Report',
+    filename: 'luweero_agricultural_executive_summary_' + new Date().getFullYear(),
+    htmlContent: buildExecutiveReportHTML(),
+    csvContent: buildExecutiveReportCSV(),
+  });
+}
+
+function downloadExecutivePDF() {
+  printExecutiveReport();
+  setTimeout(downloadActivePDF, 400);
+}
+
+function exportOverviewCSV() {
+  const csv = buildExecutiveReportCSV();
+  downloadCSV('luweero_district_executive_kpis_' + Date.now() + '.csv', csv);
+}
+
+// ── Full Collection Registries (Print & CSV) ───────────────────
+function printFarmersRegistryReport() {
+  openPrintPreview({
+    title: 'Farmers Registry Directory Report',
+    filename: 'farmers_registry_report',
+    htmlContent: buildTableRegistryHTML('farmers'),
+    csvContent: exportFarmersCSV(false),
+  });
+}
+
+function printFarmsRegistryReport() {
+  openPrintPreview({
+    title: 'Farms & Landholdings Directory Report',
+    filename: 'farms_registry_report',
+    htmlContent: buildTableRegistryHTML('farms'),
+    csvContent: exportFarmsCSV(false),
+  });
+}
+
+function printCropsRegistryReport() {
+  openPrintPreview({
+    title: 'Crop Production & Harvest Losses Report',
+    filename: 'crops_production_report',
+    htmlContent: buildTableRegistryHTML('crops'),
+    csvContent: exportCropsCSV(false),
+  });
+}
+
+function printTransactionsRegistryReport() {
+  openPrintPreview({
+    title: 'Market Sales & Produce Transactions Ledger',
+    filename: 'market_sales_ledger_report',
+    htmlContent: buildTableRegistryHTML('transactions'),
+    csvContent: exportTransactionsCSV(false),
+  });
+}
+
+function printVisitsRegistryReport() {
+  openPrintPreview({
+    title: 'Extension Advisory Services Log Report',
+    filename: 'extension_visits_log_report',
+    htmlContent: buildTableRegistryHTML('visits'),
+    csvContent: exportVisitsCSV(false),
+  });
+}
+
+// ── CSV Exporters for All Sections ────────────────────────────
+function exportFarmersCSV(triggerDownload = true) {
+  const csv = generateCSV([
+    { label: 'Farmer ID', getValue: d => d._id },
+    { label: 'Full Name', getValue: d => d.full_name },
+    { label: 'National ID', getValue: d => d.national_id || '' },
+    { label: 'Gender', getValue: d => d.gender },
+    { label: 'Phone', getValue: d => d.phone },
+    { label: 'Village', getValue: d => d.village },
+    { label: 'Sub County', getValue: d => d.sub_county },
+    { label: 'Household Size', getValue: d => d.household_size || '' },
+    { label: 'Education Level', getValue: d => d.education_level || '' },
+    { label: 'Cooperative Name', getValue: d => d.cooperative?.name || 'None' },
+    { label: 'Cooperative Role', getValue: d => d.cooperative?.role || '' },
+    { label: 'Primary Activities', getValue: d => d.primary_activities },
+    { label: 'Status', getValue: d => d.status },
+  ], farmersData);
+
+  if (triggerDownload) downloadCSV(`luweero_farmers_registry_${Date.now()}.csv`, csv);
+  return csv;
+}
+
+function exportFarmsCSV(triggerDownload = true) {
+  const csv = generateCSV([
+    { label: 'Farm ID', getValue: d => d._id },
+    { label: 'Farm Name', getValue: d => d.farm_name },
+    { label: 'Owner Name', getValue: d => d.farmer_name },
+    { label: 'Size (Acres)', getValue: d => d.size_acres },
+    { label: 'Tenure Type', getValue: d => d.tenure_type },
+    { label: 'Village', getValue: d => d.village },
+    { label: 'Soil Type', getValue: d => d.soil_type },
+    { label: 'Soil pH', getValue: d => d.soil_ph },
+    { label: 'Irrigation', getValue: d => d.irrigation ? 'Yes' : 'No' },
+    { label: 'Water Source', getValue: d => d.water_source },
+    { label: 'Current Crops', getValue: d => d.current_crops },
+    { label: 'Status', getValue: d => d.status },
+  ], farmsData);
+
+  if (triggerDownload) downloadCSV(`luweero_farms_plots_${Date.now()}.csv`, csv);
+  return csv;
+}
+
+function exportCropsCSV(triggerDownload = true) {
+  const csv = generateCSV([
+    { label: 'Record ID', getValue: d => d._id },
+    { label: 'Record Type', getValue: d => d.record_type },
+    { label: 'Produce / Animal', getValue: d => d.crop_name || d.animal_type },
+    { label: 'Variety / Breed', getValue: d => d.variety || d.breed },
+    { label: 'Season', getValue: d => d.season },
+    { label: 'Area Planted (Acres)', getValue: d => d.area_planted_acres },
+    { label: 'Herd / Flock Size', getValue: d => d.herd_size || d.flock_size },
+    { label: 'Planting Date', getValue: d => isoDate(d.planting_date) },
+    { label: 'Harvest Count', getValue: d => (d.harvests || []).length },
+    { label: 'Status', getValue: d => d.status },
+  ], cropsData);
+
+  if (triggerDownload) downloadCSV(`luweero_crop_livestock_${Date.now()}.csv`, csv);
+  return csv;
+}
+
+function exportTransactionsCSV(triggerDownload = true) {
+  const csv = generateCSV([
+    { label: 'Voucher Ref', getValue: d => 'LWR-RCP-' + (d._id ? String(d._id).slice(-6).toUpperCase() : '') },
+    { label: 'Transaction Date', getValue: d => isoDate(d.transaction_date) },
+    { label: 'Farmer Name', getValue: d => d.farmer_name },
+    { label: 'Produce Type', getValue: d => d.produce_type },
+    { label: 'Quantity', getValue: d => d.quantity_kg ? `${d.quantity_kg} kg` : (d.quantity_litres ? `${d.quantity_litres} L` : '') },
+    { label: 'Unit Price UGX', getValue: d => d.unit_price_ugx || '' },
+    { label: 'Gross Amount UGX', getValue: d => d.total_amount_ugx || 0 },
+    { label: 'Transport Deductions UGX', getValue: d => d.transport_cost_ugx || 0 },
+    { label: 'Net Revenue UGX', getValue: d => d.net_revenue_ugx || (d.total_amount_ugx - (d.transport_cost_ugx||0)) },
+    { label: 'Buyer Name', getValue: d => d.buyer?.name || '' },
+    { label: 'Buyer Type', getValue: d => d.buyer?.type || '' },
+    { label: 'Market Channel', getValue: d => d.market_channel },
+    { label: 'Payment Method', getValue: d => d.payment_method },
+    { label: 'Payment Status', getValue: d => d.payment_status },
+    { label: 'Season', getValue: d => d.season },
+  ], txData);
+
+  if (triggerDownload) downloadCSV(`luweero_market_sales_${Date.now()}.csv`, csv);
+  return csv;
+}
+
+function exportVisitsCSV(triggerDownload = true) {
+  const csv = generateCSV([
+    { label: 'Visit ID', getValue: d => d._id },
+    { label: 'Visit Date', getValue: d => isoDate(d.visit_date) },
+    { label: 'Officer Name', getValue: d => d.officer?.name },
+    { label: 'Officer Title', getValue: d => d.officer?.title },
+    { label: 'Organisation', getValue: d => d.officer?.organisation },
+    { label: 'Visit Type', getValue: d => d.visit_type },
+    { label: 'Topics Covered', getValue: d => d.topics_covered },
+    { label: 'Recommendations Count', getValue: d => (d.recommendations || []).length },
+    { label: 'Follow-up Date', getValue: d => isoDate(d.follow_up_date) },
+    { label: 'Follow-up Completed', getValue: d => d.follow_up_completed ? 'Yes' : 'No' },
+    { label: 'Status', getValue: d => d.status },
+  ], visitsData);
+
+  if (triggerDownload) downloadCSV(`luweero_extension_visits_${Date.now()}.csv`, csv);
+  return csv;
+}
+
+// ── Reports Central Modal ─────────────────────────────────────
+function openReportsModal() {
+  openModal(`
+    <h2><i class="bi bi-file-earmark-bar-graph"></i> District Agricultural Reports &amp; Exports Center</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">
+      Select an official district report to preview, print in certified PDF format, or export to CSV spreadsheet.
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-speedometer2 text-accent" style="margin-right:6px"></i> Executive Agricultural Summary Report</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">District KPIs, revenue totals, tenure distribution, and post-harvest losses</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printExecutiveReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportOverviewCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-people text-blue" style="margin-right:6px"></i> Registered Farmers Directory</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Full directory of active and registered farmers across Luweero sub-counties</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printFarmersRegistryReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportFarmersCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-map text-teal" style="margin-right:6px"></i> Farms &amp; Landholdings Report</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Acreage, Freehold/Mailo/Bibanja tenure, soil types, pH, and irrigation</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printFarmsRegistryReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportFarmsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-cash-coin text-amber" style="margin-right:6px"></i> Market Sales &amp; Financial Ledger</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Produce bulking records, gross &amp; net revenue, payment statuses, and channels</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printTransactionsRegistryReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportTransactionsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-flower2 text-accent" style="margin-right:6px"></i> Crop Production &amp; Post-Harvest Loss Log</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Yield quantities, crop varieties, harvest logs, and post-harvest losses</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printCropsRegistryReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportCropsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <strong style="color:#fff;font-size:14px"><i class="bi bi-clipboard2-check text-purple" style="margin-right:6px"></i> Field Extension Advisory Services Log</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Extension officers outreach, training topics, recommendations, and follow-ups</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-preview-print" onclick="closeModal();printVisitsRegistryReport()"><i class="bi bi-printer"></i> Print PDF</button>
+          <button class="btn-export-csv" onclick="exportVisitsCSV()"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions" style="border-top:none;padding-top:14px">
+      <button class="btn-cancel" onclick="closeModal()"><i class="bi bi-x-lg"></i> Close</button>
+    </div>
+  `, true);
+}
+
+// ── Receipt Settings Modal ─────────────────────────────────────
+function openSettingsModal() {
+  const currentLogoPreview = receiptSettings.customLogoBase64 
+    ? `<img src="${receiptSettings.customLogoBase64}" alt="Current Logo" style="max-width:100%;max-height:100px;object-fit:contain;" />`
+    : '<span style="color:var(--muted);font-size:12px">No custom logo uploaded</span>';
+  
+  openModal(`
+    <h2><i class="bi bi-gear-fill"></i> Receipt &amp; Document Header Settings</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">
+      Customize the logo and header text that appears on all printed receipts and official documents.
+    </p>
+
+    <form onsubmit="saveReceiptSettingsFromForm(event)">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-image"></i> Logo Configuration</div>
+        <div class="form-group full">
+          <label>Logo Type</label>
+          <select name="logoType" onchange="toggleLogoType(this.value)">
+            <option value="default" ${receiptSettings.logoType === 'default' ? 'selected' : ''}>Default SVG Crest</option>
+            <option value="custom" ${receiptSettings.logoType === 'custom' ? 'selected' : ''}>Custom Logo (Upload)</option>
+          </select>
+        </div>
+        
+        <div class="form-group full" id="customLogoGroup" style="display:${receiptSettings.logoType === 'custom' ? 'block' : 'none'}">
+          <label>Upload Custom Logo</label>
+          <div 
+            id="dropZone"
+            class="logo-drop-zone"
+            ondrop="handleDrop(event)"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;background:rgba(255,255,255,.03);transition:all .2s;"
+          >
+            <div style="color:var(--muted);font-size:12px;margin-bottom:10px">
+              <strong>Drag &amp; Drop</strong> an image here or
+            </div>
+            <input 
+              type="file" 
+              id="logoFileInput" 
+              accept="image/png,image/jpeg,image/svg+xml" 
+              onchange="handleFileSelect(event)"
+              style="display:none"
+            />
+            <button 
+              type="button" 
+              onclick="document.getElementById('logoFileInput').click()"
+              class="btn-cancel"
+              style="font-size:11px;padding:6px 12px;"
+            >
+              <i class="bi bi-folder2-open"></i> Choose File
+            </button>
+            <div style="font-size:10px;color:var(--muted);margin-top:8px">
+              PNG, JPG, SVG (Max 2MB)
+            </div>
+          </div>
+          
+          <div id="logoPreview" style="margin-top:12px;padding:10px;background:rgba(255,255,255,.05);border-radius:6px;min-height:60px;display:flex;align-items:center;justify-content:center;">
+            ${currentLogoPreview}
+          </div>
+          
+          ${receiptSettings.customLogoBase64 ? `
+            <button type="button" onclick="removeCustomLogo()" style="margin-top:8px;font-size:11px;padding:4px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+              <i class="bi bi-trash3"></i> Remove Logo
+            </button>
+          ` : ''}
+        </div>
+
+        <div class="form-section-title"><i class="bi bi-type"></i> Header Text Configuration</div>
+        <div class="form-group full">
+          <label>Government / Organization Name (Top Line)</label>
+          <input name="govText" value="${receiptSettings.govText}" required>
+        </div>
+        <div class="form-group full">
+          <label>District / Department Name (Main Title)</label>
+          <input name="districtText" value="${receiptSettings.districtText}" required>
+        </div>
+        <div class="form-group full">
+          <label>Department / Directorate Name</label>
+          <input name="deptText" value="${receiptSettings.deptText}" required>
+        </div>
+        <div class="form-group full">
+          <label>Contact Information (Address, Phone, Email)</label>
+          <input name="contactText" value="${receiptSettings.contactText}" required>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="resetReceiptSettings()"><i class="bi bi-arrow-counterclockwise"></i> Reset to Default</button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save"><i class="bi bi-floppy"></i> Save Settings</button>
+      </div>
+    </form>
+  `, true);
+}
+
+function toggleLogoType(type) {
+  const customGroup = document.getElementById('customLogoGroup');
+  if (customGroup) {
+    customGroup.style.display = type === 'custom' ? 'block' : 'none';
+  }
+}
+
+function saveReceiptSettingsFromForm(event) {
+  event.preventDefault();
+  const fd = new FormData(event.target);
+  
+  receiptSettings.govText = fd.get('govText');
+  receiptSettings.districtText = fd.get('districtText');
+  receiptSettings.deptText = fd.get('deptText');
+  receiptSettings.contactText = fd.get('contactText');
+  
+  const logoType = fd.get('logoType');
+  receiptSettings.logoType = logoType;
+  
+  if (logoType === 'default') {
+    receiptSettings.customLogoBase64 = '';
+  }
+  
+  saveReceiptSettings();
+  closeModal();
+}
+
+function resetReceiptSettings() {
+  if (confirm('Are you sure you want to reset all receipt settings to default?')) {
+    receiptSettings = {
+      logo: CREST_SVG,
+      govText: 'REPUBLIC OF UGANDA',
+      districtText: 'LUWEERO DISTRICT LOCAL GOVERNMENT',
+      deptText: 'DIRECTORATE OF PRODUCTION AND MARKETING',
+      contactText: 'P.O. Box 78, Luweero · Tel: +256 414 610 200 · Email: agriculture@luweero.go.ug',
+      customLogoBase64: '',
+      logoType: 'default'
+    };
+    saveReceiptSettings();
+    closeModal();
+    showToast('Settings reset to default');
+  }
+}
+
+// File upload and drag-drop handlers
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) {
+    processLogoFile(file);
+  }
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  const dropZone = event.currentTarget;
+  dropZone.classList.remove('drag-over');
+  
+  const file = event.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    processLogoFile(file);
+  } else {
+    showToast('Please drop an image file (PNG, JPG, SVG)', 'error');
+  }
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function processLogoFile(file) {
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('File too large. Maximum size is 2MB.', 'error');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    receiptSettings.customLogoBase64 = e.target.result;
+    receiptSettings.logoType = 'custom';
+    
+    const preview = document.getElementById('logoPreview');
+    if (preview) {
+      preview.innerHTML = `<img src="${e.target.result}" alt="Logo Preview" style="max-width:100%;max-height:100px;object-fit:contain;" />`;
+    }
+    showToast('Logo uploaded successfully');
+  };
+  reader.onerror = function() {
+    showToast('Error reading file', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCustomLogo() {
+  receiptSettings.customLogoBase64 = '';
+  receiptSettings.logoType = 'default';
+  
+  const preview = document.getElementById('logoPreview');
+  if (preview) {
+    preview.innerHTML = '<span style="color:var(--muted);font-size:12px">No custom logo</span>';
+  }
+  
+  showToast('Custom logo removed');
+}
+
+// ── User Management Modal ─────────────────────────────────────
+async function openUserManagementModal() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('Access denied. Admin privileges required.', 'error');
+    return;
+  }
+  
+  try {
+    usersData = await api('/users');
+  } catch (error) {
+    showToast('Failed to load users', 'error');
+    return;
+  }
+  
+  renderUserManagementModal();
+}
+
+function renderUserManagementModal() {
+  const usersTable = usersData.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No users found</td></tr>'
+    : usersData.map(u => `
+      <tr>
+        <td><strong>${u.username}</strong></td>
+        <td>${u.full_name || '—'}</td>
+        <td>${u.email || '—'}</td>
+        <td>${u.role === 'admin' ? '<span class="badge badge-purple">Admin</span>' : '<span class="badge badge-gray">User</span>'}</td>
+        <td>
+          <div class="action-cell">
+            ${u.username !== 'admin' ? `
+              <button class="btn-del" onclick="deleteUser('${u._id}', '${u.username}')"><i class="bi bi-trash3"></i> Delete</button>
+            ` : '<span style="color:var(--muted);font-size:11px"><i class="bi bi-shield-lock"></i> Protected</span>'}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  
+  openModal(`
+    <h2><i class="bi bi-people-fill"></i> User Management</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">
+      Manage system users. Only administrators can access this section.
+    </p>
+
+    <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;color:#fff;display:flex;align-items:center;gap:6px">
+        <i class="bi bi-person-plus-fill text-accent"></i> Add New User
+      </h3>
+      <form onsubmit="addUser(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Username *</label>
+          <input name="username" required style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Password *</label>
+          <input name="password" type="password" required style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Full Name</label>
+          <input name="full_name" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Email</label>
+          <input name="email" type="email" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Role</label>
+          <select name="role" style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <button type="submit" class="btn-save" style="padding:8px 16px;font-size:12px;">
+            <i class="bi bi-person-plus-fill"></i> Add User
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:14px;font-weight:600">System Users (${usersData.length})</h3>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:rgba(255,255,255,.03);">
+              <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;">Username</th>
+              <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;">Full Name</th>
+              <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;">Email</th>
+              <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;">Role</th>
+              <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            ${usersTable}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="form-actions" style="border-top:none;padding-top:14px">
+      <button class="btn-cancel" onclick="closeModal()">Close</button>
+    </div>
+  `, true);
+}
+
+async function addUser(event) {
+  event.preventDefault();
+  const fd = new FormData(event.target);
+  const userData = {
+    username: fd.get('username'),
+    password: fd.get('password'),
+    full_name: fd.get('full_name'),
+    email: fd.get('email'),
+    role: fd.get('role')
+  };
+  
+  try {
+    await api('/users', 'POST', userData);
+    showToast('User added successfully');
+    usersData = await api('/users');
+    renderUserManagementModal();
+  } catch (error) {
+    showToast(error.message || 'Failed to add user', 'error');
+  }
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+  
+  try {
+    await api(`/users/${userId}`, 'DELETE');
+    showToast('User deleted successfully');
+    usersData = await api('/users');
+    renderUserManagementModal();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete user', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OVERVIEW SECTION — Stats & Charts
+// ═══════════════════════════════════════════════════════════════
+async function loadOverview() {
+  await Promise.all([loadStats(), loadCharts()]);
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/stats');
+    statsData = s;
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-card green"><div class="stat-icon"><i class="bi bi-people"></i></div>
+        <div class="stat-label">Farmers</div><div class="stat-value">${s.farmers}</div>
+        <div class="stat-sub">Registered cultivators</div></div>
+      <div class="stat-card blue"><div class="stat-icon"><i class="bi bi-map"></i></div>
+        <div class="stat-label">Farms / Plots</div><div class="stat-value">${s.farms}</div>
+        <div class="stat-sub">With GeoJSON coords</div></div>
+      <div class="stat-card teal"><div class="stat-icon"><i class="bi bi-flower2"></i></div>
+        <div class="stat-label">Crop / Livestock</div><div class="stat-value">${s.crops}</div>
+        <div class="stat-sub">Production records</div></div>
+      <div class="stat-card amber"><div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+        <div class="stat-label">Transactions</div><div class="stat-value">${s.sales}</div>
+        <div class="stat-sub">${s.paidCount} paid</div></div>
+      <div class="stat-card purple"><div class="stat-icon"><i class="bi bi-clipboard2-check"></i></div>
+        <div class="stat-label">Extension Visits</div><div class="stat-value">${s.visits}</div>
+        <div class="stat-sub">Advisory interactions</div></div>
+      <div class="stat-card pink"><div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="stat-label">Total Net Revenue</div>
+        <div class="stat-value" style="font-size:18px">${(s.totalRevenue / 1e6).toFixed(1)}M</div>
+        <div class="stat-sub">UGX across all sales</div></div>
+    `;
+  } catch (err) {
+    document.getElementById('stats-grid').innerHTML =
+      `<div style="grid-column:1/-1;padding:30px;color:#f87171;font-size:13px"><i class="bi bi-exclamation-triangle"></i> ${err.message}</div>`;
+  }
+}
+
+async function loadCharts() {
+  try {
+    const [rev, tenure, loss] = await Promise.all([
+      api('/revenue-by-farmer'), api('/farms-by-tenure'), api('/loss-by-crop')
+    ]);
+    const C = ['#16c784','#3b82f6','#f59e0b','#ec4899','#06b6d4','#a855f7'];
+
+    if (charts.rev) charts.rev.destroy();
+    charts.rev = new Chart(document.getElementById('chart-revenue'), {
+      type: 'bar',
+      data: {
+        labels: rev.map(r => r._id.split(' ')[0]),
+        datasets: [{ label:'Net Revenue (UGX M)', data: rev.map(r => +(r.net/1e6).toFixed(2)),
+          backgroundColor: C, borderRadius: 6, borderSkipped: false }]
+      },
+      options: { plugins:{legend:{display:false}}, scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}
+      }}
+    });
+
+    if (charts.tenure) charts.tenure.destroy();
+    charts.tenure = new Chart(document.getElementById('chart-tenure'), {
+      type: 'doughnut',
+      data: {
+        labels: tenure.map(t => t._id + ' (' + t.total_acres + ' ac)'),
+        datasets: [{ data: tenure.map(t => t.total_acres), backgroundColor: C, borderWidth:0, hoverOffset:6 }]
+      },
+      options: { plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:10},boxWidth:10}}}, cutout:'65%' }
+    });
+
+    if (charts.loss) charts.loss.destroy();
+    charts.loss = new Chart(document.getElementById('chart-loss'), {
+      type: 'bar',
+      data: {
+        labels: loss.map(l => l._id),
+        datasets: [{ label:'Loss %', data: loss.map(l => l.loss_pct),
+          backgroundColor:['#f59e0b','#ec4899','#a855f7'], borderRadius:6, borderSkipped:false }]
+      },
+      options: { indexAxis:'y', plugins:{legend:{display:false}}, scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}},
+        y:{ticks:{color:'#64748b',font:{size:10}},grid:{display:false}}
+      }}
+    });
+  } catch (err) {
+    console.warn('Charts error:', err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FARMERS CRUD & EDIT DIALOGUE (With Print Button)
+// ═══════════════════════════════════════════════════════════════
+async function loadFarmers() {
+  document.getElementById('farmers-tbody').innerHTML =
+    `<tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  try {
+    farmersData = await api('/farmers');
+    document.getElementById('farmers-count').textContent = farmersData.length + ' docs';
+    document.getElementById('farmers-tbody').innerHTML = farmersData.length === 0
+      ? `<tr><td colspan="9" class="tbl-error"><i class="bi bi-info-circle"></i> No farmers found.</td></tr>`
+      : farmersData.map((f, i) => `
+        <tr>
+          <td><strong>${f.full_name || '—'}</strong></td>
+          <td>${badge(f.gender, f.gender === 'Female' ? 'pink' : 'blue')}</td>
+          <td>${f.village || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${f.phone || '—'}</td>
+          <td>${(f.primary_activities || []).map(a => `<span class="pill">${a}</span>`).join('')}</td>
+          <td style="font-size:12px">${f.cooperative?.name || badge('None','gray')}</td>
+          <td>${f.cooperative?.role ? badge(f.cooperative.role,'teal') : '—'}</td>
+          <td>${statusBadge(f.status)}</td>
+          <td><div class="action-cell">
+            <button class="btn-row-print" onclick="printFarmerRecord(${i})" title="Print Farmer Profile"><i class="bi bi-file-earmark-person"></i> Profile</button>
+            <button class="btn-edit" onclick="openFarmerForm(${i})"><i class="bi bi-pencil-square"></i> Edit</button>
+            <button class="btn-del"  onclick="confirmDelete('farmers','${f._id}','${(f.full_name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i> Delete</button>
+          </div></td>
+        </tr>`).join('');
+  } catch (err) {
+    farmersData = [];
+    document.getElementById('farmers-count').textContent = 'Error';
+    tblErr('farmers-tbody', 9, err.message);
+  }
+}
+
+function openFarmerForm(idx = null) {
+  const f = idx !== null ? farmersData[idx] : {};
+  const isEdit = idx !== null;
+  openModal(`
+    <h2>${isEdit ? '<i class="bi bi-pencil-square"></i> Edit Farmer Record' : '<i class="bi bi-person-plus-fill"></i> Register New Farmer'}</h2>
+    <form onsubmit="saveFarmer(event,'${isEdit ? f._id : ''}')">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-person"></i> Personal Information</div>
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input name="full_name" required value="${f.full_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>National ID (NIN)</label>
+          <input name="national_id" value="${f.national_id || ''}" placeholder="e.g. CM90200197638004">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select name="gender">
+            <option value="">— Select —</option>
+            <option value="Male"   ${f.gender === 'Male'   ? 'selected' : ''}>Male</option>
+            <option value="Female" ${f.gender === 'Female' ? 'selected' : ''}>Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Village</label>
+          <input name="village" value="${f.village || ''}">
+        </div>
+        <div class="form-group">
+          <label>Sub County</label>
+          <input name="sub_county" value="${f.sub_county || ''}">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input name="phone" value="${f.phone || ''}">
+        </div>
+        <div class="form-group">
+          <label>Household Size</label>
+          <input name="household_size" type="number" min="1" value="${f.household_size || ''}">
+        </div>
+        <div class="form-group">
+          <label>Education Level</label>
+          <select name="education_level">
+            <option value="">— Select —</option>
+            ${['None','Primary','Secondary','Certificate','Diploma','Degree'].map(e =>
+              `<option value="${e}" ${f.education_level === e ? 'selected' : ''}>${e}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="Active"   ${(f.status || 'Active') === 'Active'   ? 'selected' : ''}>Active</option>
+            <option value="Inactive" ${f.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Primary Activities <small>(comma-separated)</small></label>
+          <input name="primary_activities" value="${(f.primary_activities || []).join(', ')}">
+          <small>e.g. coffee, bananas, dairy cattle, poultry</small>
+        </div>
+        <div class="form-section-title"><i class="bi bi-people"></i> Cooperative Details</div>
+        <div class="form-group">
+          <label>Cooperative Name</label>
+          <input name="cooperative_name" value="${f.cooperative?.name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Role in Cooperative</label>
+          <input name="cooperative_role" value="${f.cooperative?.role || ''}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <!-- PRINT BUTTON ON EDIT/UPDATE DIALOGUE MENU -->
+        <button type="button" class="btn-dialog-print" onclick="printFromDialog('farmers', ${isEdit ? idx : 'null'})">
+          <i class="bi bi-printer"></i> ${isEdit ? 'Print Farmer Record' : 'Print Draft'}
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save" id="farmer-save-btn">
+          <i class="bi bi-floppy"></i> ${isEdit ? 'Update' : 'Save'} Farmer
+        </button>
+      </div>
+    </form>`, true);
+}
+
+async function saveFarmer(e, id) {
+  e.preventDefault();
+  const btn = document.getElementById('farmer-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Saving…';
+  const fd = new FormData(e.target);
+  const body = {
+    full_name:       fd.get('full_name'),
+    national_id:     fd.get('national_id'),
+    gender:          fd.get('gender'),
+    village:         fd.get('village'),
+    sub_county:      fd.get('sub_county'),
+    phone:           fd.get('phone'),
+    education_level: fd.get('education_level'),
+    status:          fd.get('status'),
+    primary_activities: fd.get('primary_activities'),
+  };
+  const hhSize = fd.get('household_size');
+  if (hhSize) body.household_size = parseInt(hhSize);
+  const coopName = fd.get('cooperative_name');
+  if (coopName) body.cooperative = { name: coopName, role: fd.get('cooperative_role') };
+
+  try {
+    if (id) { await api('/farmers/' + id, 'PUT', body); showToast('Farmer updated successfully'); }
+    else     { await api('/farmers', 'POST', body);     showToast('Farmer registered successfully'); }
+    closeModal();
+    loaded.farmers = false; await loadFarmers(); loaded.farmers = true;
+    loaded.overview = false; await loadStats();  loaded.overview = true;
+  } catch (err) { showToast(err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FARMS CRUD & EDIT DIALOGUE (With Print Button)
+// ═══════════════════════════════════════════════════════════════
+async function loadFarms() {
+  document.getElementById('farms-tbody').innerHTML =
+    `<tr><td colspan="10"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  try {
+    farmsData = await api('/farms');
+    document.getElementById('farms-count').textContent = farmsData.length + ' docs';
+    document.getElementById('farms-tbody').innerHTML = farmsData.length === 0
+      ? `<tr><td colspan="10" class="tbl-error"><i class="bi bi-info-circle"></i> No farms found.</td></tr>`
+      : farmsData.map((f, i) => `
+        <tr>
+          <td><strong>${f.farm_name || '—'}</strong></td>
+          <td>${f.farmer_name || '—'}</td>
+          <td><strong>${f.size_acres}</strong> ac</td>
+          <td>${tenureBadge(f.tenure_type)}</td>
+          <td>${f.village || '—'}</td>
+          <td>${f.soil_type || '—'}</td>
+          <td>${f.soil_ph || '—'}</td>
+          <td>${f.irrigation ? badge('Yes','green') : badge('No','gray')}</td>
+          <td>${[...(f.current_crops||[]),...(f.current_livestock||[])].map(c => `<span class="pill">${c}</span>`).join('')}</td>
+          <td><div class="action-cell">
+            <button class="btn-row-print" onclick="printFarmRecord(${i})" title="Print Farm Dossier"><i class="bi bi-file-earmark-text"></i> Dossier</button>
+            <button class="btn-edit" onclick="openFarmForm(${i})"><i class="bi bi-pencil-square"></i> Edit</button>
+            <button class="btn-del"  onclick="confirmDelete('farms','${f._id}','${(f.farm_name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i> Delete</button>
+          </div></td>
+        </tr>`).join('');
+  } catch (err) {
+    farmsData = [];
+    document.getElementById('farms-count').textContent = 'Error';
+    tblErr('farms-tbody', 10, err.message);
+  }
+}
+
+function openFarmForm(idx = null) {
+  const f = idx !== null ? farmsData[idx] : {};
+  const isEdit = idx !== null;
+  openModal(`
+    <h2>${isEdit ? '<i class="bi bi-pencil-square"></i> Edit Farm Holding' : '<i class="bi bi-plus-circle"></i> Register New Farm Plot'}</h2>
+    <form onsubmit="saveFarm(event,'${isEdit ? f._id : ''}')">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-map"></i> Holding Particulars</div>
+        <div class="form-group">
+          <label>Farm Name *</label>
+          <input name="farm_name" required value="${f.farm_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Farmer / Landowner</label>
+          <input name="farmer_name" value="${f.farmer_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Size (Acres) *</label>
+          <input name="size_acres" type="number" step="0.01" required value="${f.size_acres || ''}">
+        </div>
+        <div class="form-group">
+          <label>Tenure Type</label>
+          <select name="tenure_type">
+            <option value="">— Select —</option>
+            ${['Freehold','Mailo','Bibanja','Leasehold'].map(t =>
+              `<option value="${t}" ${f.tenure_type === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Village</label>
+          <input name="village" value="${f.village || ''}">
+        </div>
+        <div class="form-group">
+          <label>Sub County</label>
+          <input name="sub_county" value="${f.sub_county || ''}">
+        </div>
+        <div class="form-section-title"><i class="bi bi-droplet"></i> Soil &amp; Water Resources</div>
+        <div class="form-group">
+          <label>Soil Type</label>
+          <input name="soil_type" value="${f.soil_type || ''}">
+        </div>
+        <div class="form-group">
+          <label>Soil pH</label>
+          <input name="soil_ph" type="number" step="0.1" min="0" max="14" value="${f.soil_ph || ''}">
+        </div>
+        <div class="form-group">
+          <label>Irrigation System</label>
+          <select name="irrigation">
+            <option value="false" ${!f.irrigation ? 'selected' : ''}>No</option>
+            <option value="true"  ${f.irrigation  ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Water Source</label>
+          <input name="water_source" value="${f.water_source || ''}">
+        </div>
+        <div class="form-group">
+          <label>Holding Status</label>
+          <select name="status">
+            <option value="Active"   ${(f.status||'Active')==='Active'   ?'selected':''}>Active</option>
+            <option value="Inactive" ${f.status==='Inactive'?'selected':''}>Inactive</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Current Crops <small>(comma-separated)</small></label>
+          <input name="current_crops" value="${(f.current_crops || []).join(', ')}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <!-- PRINT BUTTON ON EDIT/UPDATE DIALOGUE MENU -->
+        <button type="button" class="btn-dialog-print" onclick="printFromDialog('farms', ${isEdit ? idx : 'null'})">
+          <i class="bi bi-printer"></i> ${isEdit ? 'Print Farm Dossier' : 'Print Draft'}
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save" id="farm-save-btn">
+          <i class="bi bi-floppy"></i> ${isEdit ? 'Update' : 'Save'} Farm
+        </button>
+      </div>
+    </form>`, true);
+}
+
+async function saveFarm(e, id) {
+  e.preventDefault();
+  const btn = document.getElementById('farm-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Saving…';
+  const body = Object.fromEntries(new FormData(e.target).entries());
+  try {
+    if (id) { await api('/farms/' + id, 'PUT', body); showToast('Farm holding updated'); }
+    else     { await api('/farms', 'POST', body);     showToast('Farm plot registered'); }
+    closeModal();
+    loaded.farms = false; await loadFarms(); loaded.farms = true;
+    loaded.overview = false; await loadStats(); loaded.overview = true;
+  } catch (err) { showToast(err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CROPS / LIVESTOCK CRUD & EDIT DIALOGUE (With Print Button)
+// ═══════════════════════════════════════════════════════════════
+async function loadCrops() {
+  document.getElementById('crops-tbody').innerHTML =
+    `<tr><td colspan="8"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  try {
+    cropsData = await api('/crops');
+    document.getElementById('crops-count').textContent = cropsData.length + ' docs';
+    document.getElementById('crops-tbody').innerHTML = cropsData.length === 0
+      ? `<tr><td colspan="8" class="tbl-error"><i class="bi bi-info-circle"></i> No records found.</td></tr>`
+      : cropsData.map((c, i) => `
+        <tr>
+          <td>${badge(c.record_type, c.record_type === 'Crop' ? 'green' : 'blue')}</td>
+          <td><strong>${c.crop_name || c.animal_type || '—'}</strong></td>
+          <td style="font-size:12px;color:var(--muted)">${c.variety || c.breed || '—'}</td>
+          <td style="font-size:12px">${c.season || '—'}</td>
+          <td>${c.area_planted_acres ? c.area_planted_acres + ' ac' : (c.herd_size || c.flock_size || '—') + ' head'}</td>
+          <td>${badge((c.harvests || []).length + ' event(s)', 'purple')}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td><div class="action-cell">
+            <button class="btn-view" onclick="showCropDetail(${i})"><i class="bi bi-eye"></i> View</button>
+            <button class="btn-row-print" onclick="printCropRecord(${i})" title="Print Harvest Log"><i class="bi bi-printer"></i> Print</button>
+            <button class="btn-edit" onclick="openCropForm(${i})"><i class="bi bi-pencil-square"></i> Edit</button>
+            <button class="btn-del"  onclick="confirmDelete('crops','${c._id}','${(c.crop_name||c.animal_type||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i> Delete</button>
+          </div></td>
+        </tr>`).join('');
+  } catch (err) {
+    cropsData = [];
+    document.getElementById('crops-count').textContent = 'Error';
+    tblErr('crops-tbody', 8, err.message);
+  }
+}
+
+function showCropDetail(i) {
+  const c = cropsData[i];
+  const harvests = (c.harvests || []).map(h => `
+    <div class="harvest-item">
+      <strong>${h.harvest_id || h.period || 'Harvest'}</strong>
+      ${h.harvest_date ? ' · ' + fmtDate(h.harvest_date) : ''}
+      ${h.quantity_kg != null ? `<br>Yield: <strong>${h.quantity_kg} kg</strong>` : ''}
+      ${h.total_milk_litres != null ? `<br>Milk: <strong>${h.total_milk_litres.toLocaleString()} L</strong>` : ''}
+      ${h.animals_sold != null ? `<br>Animals offtake: <strong>${h.animals_sold} head</strong>` : ''}
+      ${h.post_harvest_losses_kg != null ? `<br>Losses: <span style="color:#f87171">${h.post_harvest_losses_kg} kg</span>${h.loss_reason ? ' — ' + h.loss_reason : ''}` : ''}
+      ${h.grade ? `<br>Grade: ${h.grade}` : ''}
+      ${h.storage_method ? `<br>Storage: ${h.storage_method}` : ''}
+    </div>`).join('');
+
+  openModal(`
+    <h2><i class="bi bi-flower2 text-teal"></i> ${c.crop_name || c.animal_type || 'Production Record'}</h2>
+    <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${c.record_type}</span></div>
+    <div class="detail-row"><span class="detail-label">Variety / Breed</span><span class="detail-value">${c.variety || c.breed || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Season</span><span class="detail-value">${c.season || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Planted / Started</span><span class="detail-value">${fmtDate(c.planting_date || c.acquisition_date)}</span></div>
+    <div class="detail-row"><span class="detail-label">Area / Herd</span><span class="detail-value">
+      ${c.area_planted_acres ? c.area_planted_acres + ' acres' : (c.herd_size || c.flock_size || '—') + ' animals'}
+    </span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${statusBadge(c.status)}</span></div>
+    <div class="nested-title"><i class="bi bi-calendar2-check"></i> Harvest / Production Events (${(c.harvests || []).length})</div>
+    ${harvests || '<p style="color:var(--muted);font-size:13px;padding:8px 0">No harvests recorded yet.</p>'}
+    <div class="form-actions" style="border-top:none;padding-top:14px">
+      <button type="button" class="btn-dialog-print" onclick="printCropRecord(${i})"><i class="bi bi-printer"></i> Print Production Sheet</button>
+      <button class="btn-cancel" onclick="closeModal()">Close</button>
+    </div>`);
+}
+
+function openCropForm(idx = null) {
+  const c = idx !== null ? cropsData[idx] : {};
+  const isEdit = idx !== null;
+  openModal(`
+    <h2>${isEdit ? '<i class="bi bi-pencil-square"></i> Edit Production Record' : '<i class="bi bi-plus-circle"></i> New Crop / Livestock Record'}</h2>
+    <form onsubmit="saveCrop(event,'${isEdit ? c._id : ''}')">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-flower2"></i> Record Details</div>
+        <div class="form-group">
+          <label>Record Type *</label>
+          <select name="record_type" required>
+            <option value="Crop"      ${(c.record_type||'Crop')==='Crop'      ?'selected':''}>Crop</option>
+            <option value="Livestock" ${c.record_type==='Livestock'?'selected':''}>Livestock</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            ${['Active','Productive','Establishing','Completed','Closed'].map(s =>
+              `<option value="${s}" ${(c.status||'Active')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Crop Name</label>
+          <input name="crop_name" value="${c.crop_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Animal Type</label>
+          <input name="animal_type" value="${c.animal_type || ''}">
+        </div>
+        <div class="form-group">
+          <label>Variety / Breed</label>
+          <input name="variety" value="${c.variety || c.breed || ''}">
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <input name="season" value="${c.season || ''}">
+        </div>
+        <div class="form-group">
+          <label>Area Planted (acres)</label>
+          <input name="area_planted_acres" type="number" step="0.01" value="${c.area_planted_acres || ''}">
+        </div>
+        <div class="form-group">
+          <label>Herd / Flock Size</label>
+          <input name="herd_size" type="number" value="${c.herd_size || c.flock_size || ''}">
+        </div>
+        <div class="form-group">
+          <label>Planting / Acquisition Date</label>
+          <input name="planting_date" type="date" value="${isoDate(c.planting_date || c.acquisition_date)}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <!-- PRINT BUTTON ON EDIT/UPDATE DIALOGUE MENU -->
+        <button type="button" class="btn-dialog-print" onclick="printFromDialog('crops', ${isEdit ? idx : 'null'})">
+          <i class="bi bi-printer"></i> ${isEdit ? 'Print Production Sheet' : 'Print Draft'}
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save" id="crop-save-btn">
+          <i class="bi bi-floppy"></i> ${isEdit ? 'Update' : 'Save'} Record
+        </button>
+      </div>
+    </form>`, true);
+}
+
+async function saveCrop(e, id) {
+  e.preventDefault();
+  const btn = document.getElementById('crop-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Saving…';
+  const body = Object.fromEntries(new FormData(e.target).entries());
+  if (!body.crop_name)   delete body.crop_name;
+  if (!body.animal_type) delete body.animal_type;
+  try {
+    if (id) { await api('/crops/' + id, 'PUT', body); showToast('Record updated successfully'); }
+    else     { await api('/crops', 'POST', body);     showToast('Record registered successfully'); }
+    closeModal();
+    loaded.crops = false; await loadCrops(); loaded.crops = true;
+    loaded.overview = false; await loadStats(); loaded.overview = true;
+  } catch (err) { showToast(err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARKET TRANSACTIONS CRUD & EDIT DIALOGUE (With Print Button)
+// ═══════════════════════════════════════════════════════════════
+async function loadTransactions() {
+  document.getElementById('tx-tbody').innerHTML =
+    `<tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  try {
+    txData = await api('/transactions');
+    document.getElementById('tx-count').textContent = txData.length + ' docs';
+    document.getElementById('tx-tbody').innerHTML = txData.length === 0
+      ? `<tr><td colspan="9" class="tbl-error"><i class="bi bi-info-circle"></i> No transactions found.</td></tr>`
+      : txData.map((t, i) => `
+        <tr>
+          <td style="white-space:nowrap">${fmtDate(t.transaction_date)}</td>
+          <td><strong>${t.farmer_name || '—'}</strong></td>
+          <td>${t.produce_type || '—'}</td>
+          <td style="font-size:12px">${t.buyer?.name || '—'}<br><span style="color:var(--muted)">${t.buyer?.type || ''}</span></td>
+          <td style="font-family:monospace">${(t.total_amount_ugx || 0).toLocaleString()}</td>
+          <td style="font-family:monospace;color:var(--accent);font-weight:700">${(t.net_revenue_ugx != null ? t.net_revenue_ugx : (t.total_amount_ugx - (t.transport_cost_ugx||0))).toLocaleString()}</td>
+          <td style="font-size:12px">${t.market_channel || '—'}</td>
+          <td>${statusBadge(t.payment_status)}</td>
+          <td><div class="action-cell">
+            <button class="btn-receipt-row" onclick="printReceipt(${i})" title="Print Official Receipt"><i class="bi bi-receipt"></i> Receipt</button>
+            <button class="btn-edit" onclick="openTxForm(${i})"><i class="bi bi-pencil-square"></i> Edit</button>
+            <button class="btn-del"  onclick="confirmDelete('transactions','${t._id}','${(t.farmer_name||'').replace(/'/g,"\\'")} – ${(t.produce_type||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i> Delete</button>
+          </div></td>
+        </tr>`).join('');
+  } catch (err) {
+    txData = [];
+    document.getElementById('tx-count').textContent = 'Error';
+    tblErr('tx-tbody', 9, err.message);
+  }
+}
+
+function openTxForm(idx = null) {
+  const t = idx !== null ? txData[idx] : {};
+  const isEdit = idx !== null;
+  openModal(`
+    <h2>${isEdit ? '<i class="bi bi-pencil-square"></i> Edit Transaction Record' : '<i class="bi bi-cart-plus"></i> New Market Sale'}</h2>
+    <form onsubmit="saveTx(event,'${isEdit ? t._id : ''}')">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-cash-coin"></i> Transaction Information</div>
+        <div class="form-group">
+          <label>Farmer Name *</label>
+          <input name="farmer_name" required value="${t.farmer_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Transaction Date</label>
+          <input name="transaction_date" type="date" value="${isoDate(t.transaction_date)}">
+        </div>
+        <div class="form-group">
+          <label>Produce Type *</label>
+          <input name="produce_type" required value="${t.produce_type || ''}">
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <input name="season" value="${t.season || ''}">
+        </div>
+        <div class="form-group">
+          <label>Quantity (kg or Litres)</label>
+          <input name="quantity_kg" type="number" step="0.1" value="${t.quantity_kg || t.quantity_litres || ''}">
+        </div>
+        <div class="form-group">
+          <label>Unit Price (UGX)</label>
+          <input name="unit_price_ugx" type="number" value="${t.unit_price_ugx || ''}">
+        </div>
+        <div class="form-group">
+          <label>Gross Amount (UGX) *</label>
+          <input name="total_amount_ugx" type="number" required value="${t.total_amount_ugx || ''}">
+        </div>
+        <div class="form-group">
+          <label>Transport / Logistics Deduction (UGX)</label>
+          <input name="transport_cost_ugx" type="number" value="${t.transport_cost_ugx || ''}">
+        </div>
+        <div class="form-group">
+          <label>Net Payout (UGX)</label>
+          <input name="net_revenue_ugx" type="number" value="${t.net_revenue_ugx || ''}">
+        </div>
+        <div class="form-group">
+          <label>Market Channel</label>
+          <input name="market_channel" value="${t.market_channel || ''}">
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select name="payment_status">
+            ${['Paid','Partial','Unpaid'].map(s =>
+              `<option value="${s}" ${(t.payment_status||'Paid')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Payment Method</label>
+          <input name="payment_method" value="${t.payment_method || 'Mobile Money'}">
+        </div>
+        <div class="form-section-title"><i class="bi bi-shop"></i> Buyer Particulars</div>
+        <div class="form-group">
+          <label>Buyer Name</label>
+          <input name="buyer_name" value="${t.buyer?.name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Buyer Type</label>
+          <input name="buyer_type" value="${t.buyer?.type || ''}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <!-- PRINT RECEIPT BUTTON ON EDIT/UPDATE DIALOGUE MENU -->
+        <button type="button" class="btn-dialog-print" onclick="printFromDialog('transactions', ${isEdit ? idx : 'null'})">
+          <i class="bi bi-receipt"></i> ${isEdit ? 'Print Official Receipt' : 'Print Draft Receipt'}
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save" id="tx-save-btn">
+          <i class="bi bi-floppy"></i> ${isEdit ? 'Update' : 'Save'} Transaction
+        </button>
+      </div>
+    </form>`, true);
+}
+
+async function saveTx(e, id) {
+  e.preventDefault();
+  const btn = document.getElementById('tx-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Saving…';
+  const fd  = new FormData(e.target);
+  const body = {
+    farmer_name:        fd.get('farmer_name'),
+    transaction_date:   fd.get('transaction_date'),
+    produce_type:       fd.get('produce_type'),
+    season:             fd.get('season'),
+    quantity_kg:        fd.get('quantity_kg'),
+    unit_price_ugx:     fd.get('unit_price_ugx'),
+    total_amount_ugx:   fd.get('total_amount_ugx'),
+    transport_cost_ugx: fd.get('transport_cost_ugx'),
+    net_revenue_ugx:    fd.get('net_revenue_ugx'),
+    market_channel:     fd.get('market_channel'),
+    payment_status:     fd.get('payment_status'),
+    payment_method:     fd.get('payment_method'),
+    buyer: { name: fd.get('buyer_name'), type: fd.get('buyer_type') },
+  };
+  if (!body.buyer.name) delete body.buyer;
+  try {
+    if (id) { await api('/transactions/' + id, 'PUT', body); showToast('Transaction updated'); }
+    else     { await api('/transactions', 'POST', body);     showToast('Transaction recorded'); }
+    closeModal();
+    loaded.transactions = false; await loadTransactions(); loaded.transactions = true;
+    loaded.overview = false; await Promise.all([loadStats(), loadCharts()]); loaded.overview = true;
+  } catch (err) { showToast(err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTENSION VISITS CRUD & EDIT DIALOGUE (With Print Button)
+// ═══════════════════════════════════════════════════════════════
+async function loadVisits() {
+  document.getElementById('visits-tbody').innerHTML =
+    `<tr><td colspan="9"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>`;
+  try {
+    visitsData = await api('/visits');
+    document.getElementById('visits-count').textContent = visitsData.length + ' docs';
+    document.getElementById('visits-tbody').innerHTML = visitsData.length === 0
+      ? `<tr><td colspan="9" class="tbl-error"><i class="bi bi-info-circle"></i> No visits found.</td></tr>`
+      : visitsData.map((v, i) => {
+          const topics = v.topics_covered || [];
+          const pills  = topics.slice(0, 2).map(t => `<span class="pill">${t}</span>`).join('');
+          const extra  = topics.length > 2 ? `<span class="pill">+${topics.length - 2}</span>` : '';
+          return `
+          <tr>
+            <td style="white-space:nowrap">${fmtDate(v.visit_date)}</td>
+            <td><strong>${v.officer?.name || '—'}</strong></td>
+            <td style="font-size:11px;color:var(--muted)">${v.officer?.organisation || '—'}</td>
+            <td>${badge(v.visit_type || '—', 'blue')}</td>
+            <td style="font-size:11px">${pills}${extra}</td>
+            <td>${badge((v.recommendations || []).length + ' items', 'purple')}</td>
+            <td style="white-space:nowrap;font-size:12px">${fmtDate(v.follow_up_date)}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td><div class="action-cell">
+              <button class="btn-row-print" onclick="printVisitRecord(${i})" title="Print Advisory Report"><i class="bi bi-file-earmark-check"></i> Report</button>
+              <button class="btn-edit" onclick="openVisitForm(${i})"><i class="bi bi-pencil-square"></i> Edit</button>
+              <button class="btn-del"  onclick="confirmDelete('visits','${v._id}','${(v.officer?.name||'Visit').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i> Delete</button>
+            </div></td>
+          </tr>`;
+        }).join('');
+  } catch (err) {
+    visitsData = [];
+    document.getElementById('visits-count').textContent = 'Error';
+    tblErr('visits-tbody', 9, err.message);
+  }
+}
+
+function openVisitForm(idx = null) {
+  const v = idx !== null ? visitsData[idx] : {};
+  const isEdit = idx !== null;
+  openModal(`
+    <h2>${isEdit ? '<i class="bi bi-pencil-square"></i> Edit Extension Visit' : '<i class="bi bi-clipboard-plus"></i> Log Extension Visit'}</h2>
+    <form onsubmit="saveVisit(event,'${isEdit ? v._id : ''}')">
+      <div class="form-grid">
+        <div class="form-section-title"><i class="bi bi-clipboard2-check"></i> Visit Details</div>
+        <div class="form-group">
+          <label>Visit Date *</label>
+          <input name="visit_date" type="date" required value="${isoDate(v.visit_date)}">
+        </div>
+        <div class="form-group">
+          <label>Visit Type</label>
+          <select name="visit_type">
+            ${['Advisory','Training','Follow-up','Demonstration','Research','Veterinary','NGO Support'].map(t =>
+              `<option value="${t}" ${v.visit_type === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            ${['Completed','Follow-up pending','In Progress','Closed'].map(s =>
+              `<option value="${s}" ${(v.status || 'Completed') === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Follow-up Date</label>
+          <input name="follow_up_date" type="date" value="${isoDate(v.follow_up_date)}">
+        </div>
+        <div class="form-group">
+          <label>Follow-up Completed</label>
+          <select name="follow_up_completed">
+            <option value="false" ${!v.follow_up_completed ? 'selected' : ''}>No</option>
+            <option value="true"  ${v.follow_up_completed  ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Topics Covered <small>(comma-separated)</small></label>
+          <input name="topics_covered" value="${(v.topics_covered || []).join(', ')}">
+        </div>
+        <div class="form-section-title"><i class="bi bi-person-badge"></i> Officer Particulars</div>
+        <div class="form-group">
+          <label>Officer Name *</label>
+          <input name="officer_name" required value="${v.officer?.name || ''}">
+        </div>
+        <div class="form-group">
+          <label>Officer Title</label>
+          <input name="officer_title" value="${v.officer?.title || ''}">
+        </div>
+        <div class="form-group full">
+          <label>Organisation</label>
+          <input name="officer_organisation" value="${v.officer?.organisation || ''}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <!-- PRINT BUTTON ON EDIT/UPDATE DIALOGUE MENU -->
+        <button type="button" class="btn-dialog-print" onclick="printFromDialog('visits', ${isEdit ? idx : 'null'})">
+          <i class="bi bi-printer"></i> ${isEdit ? 'Print Visit Report' : 'Print Draft'}
+        </button>
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save" id="visit-save-btn">
+          <i class="bi bi-floppy"></i> ${isEdit ? 'Update' : 'Save'} Visit
+        </button>
+      </div>
+    </form>`, true);
+}
+
+async function saveVisit(e, id) {
+  e.preventDefault();
+  const btn = document.getElementById('visit-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Saving…';
+  const fd = new FormData(e.target);
+  const body = {
+    visit_date:          fd.get('visit_date'),
+    visit_type:          fd.get('visit_type'),
+    status:              fd.get('status'),
+    follow_up_date:      fd.get('follow_up_date') || null,
+    follow_up_completed: fd.get('follow_up_completed'),
+    topics_covered:      fd.get('topics_covered'),
+    officer: {
+      name:         fd.get('officer_name'),
+      title:        fd.get('officer_title'),
+      organisation: fd.get('officer_organisation'),
+    },
+  };
+  try {
+    if (id) { await api('/visits/' + id, 'PUT', body); showToast('Visit updated'); }
+    else     { await api('/visits', 'POST', body);     showToast('Visit logged'); }
+    closeModal();
+    loaded.visits = false; await loadVisits(); loaded.visits = true;
+    loaded.overview = false; await loadStats(); loaded.overview = true;
+  } catch (err) { showToast(err.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELETE (shared)
+// ═══════════════════════════════════════════════════════════════
+const ENDPOINT_MAP = {
+  farmers:'farmers', farms:'farms', crops:'crops',
+  transactions:'transactions', visits:'visits'
+};
+const RELOAD_MAP = {
+  farmers: loadFarmers, farms: loadFarms, crops: loadCrops,
+  transactions: loadTransactions, visits: loadVisits
+};
+
+function confirmDelete(collection, id, label) {
+  openModal(`
+    <h2><i class="bi bi-trash3 text-danger"></i> Confirm Delete</h2>
+    <div class="confirm-box">
+      <p>You are about to permanently delete:<br>
+         <strong>${label}</strong><br>
+         This action <strong>cannot be undone</strong>.</p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-confirm-del" id="confirm-del-btn"
+          onclick="doDelete('${ENDPOINT_MAP[collection]}','${id}','${collection}')">
+          <i class="bi bi-trash3-fill"></i> Delete Permanently
+        </button>
+      </div>
+    </div>`);
+}
+
+async function doDelete(endpoint, id, collection) {
+  const btn = document.getElementById('confirm-del-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></span> Deleting…';
+  try {
+    const r = await api('/' + endpoint + '/' + id, 'DELETE');
+    if (r.deletedCount > 0) {
+      showToast('Record deleted');
+      closeModal();
+      loaded[collection] = false;
+      await RELOAD_MAP[collection]();
+      loaded[collection] = true;
+      loaded.overview = false; await loadStats(); loaded.overview = true;
+    } else {
+      showToast('Delete failed — record not found', 'error');
+      btn.disabled = false;
+    }
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION LOADER MAP
+// ═══════════════════════════════════════════════════════════════
+const LOADERS = {
+  overview:     loadOverview,
+  farmers:      loadFarmers,
+  farms:        loadFarms,
+  crops:        loadCrops,
+  transactions: loadTransactions,
+  visits:       loadVisits,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// REFRESH CURRENT PAGE
+// ═══════════════════════════════════════════════════════════════
+function refreshCurrent() {
+  loaded[currentSection] = false;
+  LOADERS[currentSection]().then(() => { loaded[currentSection] = true; });
+  if (currentSection !== 'overview') {
+    loaded.overview = false;
+    loadStats().then(() => { loaded.overview = true; });
+  }
+}
+
+function retryAll() { init(); }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT — Run on Page Load
+// ═══════════════════════════════════════════════════════════════
+async function init() {
+  loaded.overview = true;
+  try {
+    await Promise.all([loadStats(), loadCharts()]);
+  } catch (err) {
+    console.error('Overview load failed:', err.message);
+  }
+
+  // Pre-load all collections in the background for fast navigation & printing
+  const bgSections = ['farmers','farms','crops','transactions','visits'];
+  bgSections.forEach(key => {
+    if (!loaded[key]) {
+      loaded[key] = true;
+      LOADERS[key]().catch(err => console.warn(`[${key}] background load failed:`, err.message));
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>

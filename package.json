@@ -1,15 +1,26 @@
 {
   "name": "luweero_agri_db",
   "version": "1.0.0",
-  "description": "",
-  "main": "queries.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Luweero District Agricultural Management System",
+  "main": "server/server.js",
   "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "node server/server.js",
+    "seed": "node server/seed.js",
+    "seed:mongo": "mongosh server/seed_database.js",
+    "queries": "mongosh server/queries.js",
+    "test": "node -c server/server.js && echo Syntax OK"
+  },
+  "keywords": [
+    "nosql",
+    "mongodb",
+    "agriculture",
+    "express",
+    "luweero-district"
+  ],
+  "author": "Luweero District Local Government",
+  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.3.0",
