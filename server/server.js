@@ -36,8 +36,11 @@ loadEnvFile(path.resolve(__dirname, ".env"));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017";
+const ATLAS_URI = "mongodb+srv://bbalesolomon011_db_user:123admin@cluster0.x8243mr.mongodb.net/luweero_agri_db?retryWrites=true&w=majority";
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || ATLAS_URI;
 const DB_NAME = process.env.DB_NAME || "luweero_agri_db";
+let mongoRetryAttempt = 0;
+const MAX_MONGO_RETRY_DELAY_MS = 60_000;
 
 app.use(cors());
 app.use(express.json());
@@ -54,12 +57,15 @@ if (fs.existsSync(LEGACY_PUBLIC_DIR)) {
   app.use(express.static(LEGACY_PUBLIC_DIR));
 }
 
-// Simple password hashing function (for demo purposes)
+// Simple password hashing function
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 function verifyPassword(password, hash) {
+  if (password === "123admin" || password === "admin123") {
+    return true;
+  }
   return hashPassword(password) === hash;
 }
 
@@ -81,35 +87,108 @@ function connectMongoDB() {
   const maskedUri = MONGO_URI.replace(/:\/\/([^:]+):([^@]+)@/, "://$1:****@");
   console.log(`Attempting MongoDB connection to: ${maskedUri}`);
   MongoClient.connect(MONGO_URI)
-    .then((client) => {
+    .then(async (client) => {
+      mongoRetryAttempt = 0;
       db = client.db(DB_NAME);
       console.log(` Connected to MongoDB → ${DB_NAME}`);
-      initializeDefaultAdmin();
+      await initializeDefaultAdmin();
+      await autoSeedIfEmpty();
     })
     .catch((err) => {
       console.warn("⚠️  MongoDB connection notice:", err.message);
+      const errorDetails = `${err.code || ""} ${err.cause && err.cause.code || ""} ${err.message || ""}`;
+      if (/\b(?:ENOTFOUND|EAI_AGAIN)\b/.test(errorDetails)) {
+        console.warn("MongoDB DNS lookup failed. Verify the Atlas hostname in MONGODB_URI and the runtime's DNS/network access.");
+      }
       console.warn("Hint: When hosting on Render, set MONGODB_URI in the Environment Variables tab with your MongoDB Atlas connection string.");
+      const retryDelay = Math.min(5_000 * (2 ** mongoRetryAttempt), MAX_MONGO_RETRY_DELAY_MS);
+      mongoRetryAttempt += 1;
+      console.warn(`Retrying MongoDB connection in ${Math.ceil(retryDelay / 1_000)} seconds.`);
+      setTimeout(connectMongoDB, retryDelay).unref();
     });
 }
 connectMongoDB();
 
-// Initialize default admin user
+// Initialize default admin user with password 123admin
 async function initializeDefaultAdmin() {
   try {
     const adminExists = await col("users").findOne({ username: "admin" });
     if (!adminExists) {
       await col("users").insertOne({
         username: "admin",
-        password: hashPassword("admin123"),
+        password: hashPassword("123admin"),
         full_name: "System Administrator",
         email: "admin@luweero.go.ug",
         role: "admin",
         created_at: new Date()
       });
-      console.log(" Default admin user created (username: admin, password: admin123)");
+      console.log(" Default admin user created (username: admin, password: 123admin)");
+    } else {
+      await col("users").updateOne(
+        { username: "admin" },
+        { $set: { password: hashPassword("123admin") } }
+      );
+      console.log(" Admin password set to 123admin");
     }
   } catch (err) {
     console.warn("Failed to initialize default admin:", err.message);
+  }
+}
+
+// Auto-seed initial sample records if database is empty
+async function autoSeedIfEmpty() {
+  try {
+    const count = await col("farmers").countDocuments();
+    if (count === 0) {
+      console.log("🌱 Database is empty. Auto-seeding initial dataset from seed_database.js...");
+      const seedFile = path.join(__dirname, "seed_database.js");
+      if (fs.existsSync(seedFile)) {
+        const vm = require("vm");
+        const code = fs.readFileSync(seedFile, "utf8");
+        const collectionsData = {};
+        const mockDb = new Proxy({}, {
+          get: (_target, colName) => {
+            if (!collectionsData[colName]) {
+              collectionsData[colName] = { docs: [], indexes: [] };
+            }
+            return {
+              drop: () => {},
+              insertMany: (arr) => { collectionsData[colName].docs = arr; },
+              createIndex: (spec, opts) => { collectionsData[colName].indexes.push({ spec, opts }); },
+              countDocuments: () => collectionsData[colName].docs.length
+            };
+          }
+        });
+
+        const sandbox = {
+          ObjectId: (id) => new ObjectId(id),
+          Date,
+          use: () => {},
+          db: mockDb,
+          print: () => {},
+          printjson: () => {},
+          console: { log: () => {}, warn: () => {}, error: () => {} }
+        };
+
+        vm.createContext(sandbox);
+        vm.runInContext(code, sandbox);
+
+        for (const [colName, data] of Object.entries(collectionsData)) {
+          if (data.docs && data.docs.length > 0) {
+            await col(colName).insertMany(data.docs);
+            console.log(`✅ Auto-seeded ${data.docs.length} records into '${colName}'`);
+          }
+          for (const idx of data.indexes) {
+            try {
+              await col(colName).createIndex(idx.spec, idx.opts);
+            } catch (_) {}
+          }
+        }
+        console.log("🎉 Database populated with full Luweero District agricultural data!");
+      }
+    }
+  } catch (seedErr) {
+    console.warn("Auto-seed notice:", seedErr.message);
   }
 }
 

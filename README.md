@@ -81,6 +81,8 @@ This repository is pre-configured for one-click deployment on [Render](https://r
    - `NODE_ENV`: `production`
 6. Click **Deploy Web Service**.
 
+The server retries failed MongoDB connections with a capped backoff. If the log reports `ENOTFOUND`, verify that the hostname in `MONGODB_URI` exactly matches the cluster connection string from Atlas and that the deployment runtime can resolve it.
+
 ### Method 2: Render Blueprint (`render.yaml`)
 1. Click **New +** → **Blueprint** in the Render Dashboard.
 2. Select this repository.
@@ -108,4 +110,3 @@ MONGODB_URI="your_mongodb_atlas_connection_string" npm run seed
 | `GET` | `/api/transactions`| Produce sales & vouchers (supports single GET, POST, PUT, DELETE) |
 | `GET` | `/api/visits` | Extension advisory visits (supports single GET, POST, PUT, DELETE) |
 | `GET` | `/api/export/:col/csv` | Streams RFC-4180 UTF-8 BOM CSV for any collection |
-
